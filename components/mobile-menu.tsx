@@ -16,9 +16,11 @@ import {
 export function MobileMenu({
   links,
   signedIn,
+  userName,
 }: {
   links: { href: string; label: string }[];
   signedIn: boolean;
+  userName?: string | null;
 }) {
   return (
     <Sheet>
@@ -30,9 +32,10 @@ export function MobileMenu({
       </SheetTrigger>
       <SheetContent side="right">
         <SheetHeader>
-          <SheetTitle className="font-serif text-2xl">Hundert</SheetTitle>
-          <SheetDescription>Reserve first. Pay when the hundred is full.</SheetDescription>
+          <SheetTitle className="font-serif text-2xl">donmartins</SheetTitle>
+          <SheetDescription>AFM Saucer MOD. Register to pre-order.</SheetDescription>
         </SheetHeader>
+        {userName ? <p className="px-4 text-sm font-bold">{userName}</p> : null}
         <nav className="grid gap-3 px-4">
           {links.map((link) => (
             <Link key={link.href} href={link.href} className="font-serif text-2xl tracking-tight">

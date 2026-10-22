@@ -2,6 +2,7 @@ import { mkdirSync } from "node:fs";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { ensureCatalog, ensureSuperuser, seedWorkshop } from "./seed";
+import { clearLeaNoticesOnce } from "./shop";
 import { one } from "./sql";
 
 export { many, one, run, withTransaction } from "./sql";
@@ -26,6 +27,7 @@ export function openDatabase(filename: string, options?: { seed?: boolean }) {
       ensureSuperuser(db);
       ensureCatalog(db);
     }
+    clearLeaNoticesOnce(db);
   }
   relaxCartQuantity(db);
   return db;

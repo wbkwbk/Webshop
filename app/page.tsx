@@ -33,13 +33,13 @@ async function ShopHome() {
       <Frame className="pb-4">
         <div className="grid items-end gap-10 lg:grid-cols-[minmax(0,1.4fr)_minmax(12rem,0.6fr)]">
           <div>
-            <p className="text-xs font-medium tracking-[0.18em] text-muted-foreground uppercase">AFM Saucer Mod · Zürich</p>
+            <p className="text-xs font-medium tracking-[0.18em] text-muted-foreground uppercase">AFM Saucer MOD</p>
             <h1 className="mt-3 max-w-xl font-serif text-5xl leading-[0.95] tracking-tight text-balance sm:text-6xl">
-              Production starts at one hundred.
+              AFM Saucer MOD
             </h1>
             <p className="mt-5 max-w-xl text-lg leading-8 text-muted-foreground">
-              The shop has one piece, the AFM Saucer Mod. Reserve as many as you need. Everyone can see how many are
-              already reserved. Production starts once at least 100 are reserved, and you can keep reserving after that.
+              Please register to pre-order. Production starts once we reach 100 reservations. No payment is required
+              upfront—you will only be asked to pay when production begins at 100 orders.
             </p>
           </div>
           <div>

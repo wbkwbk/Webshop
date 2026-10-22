@@ -104,7 +104,7 @@ async function OrderedItems({ searchParams }: { searchParams: SearchParams }) {
       </div>
       {lines.length === 0 ? (
         <p className="rounded-xl border border-dashed border-border px-4 py-8 text-sm text-muted-foreground">
-          Nothing is reserved yet. The AFM Saucer Mod starts at 0.
+          Nothing is reserved yet. The AFM Saucer MOD starts at 0.
         </p>
       ) : (
         <div className="grid min-w-0 gap-8">

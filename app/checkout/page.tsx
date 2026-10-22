@@ -32,7 +32,7 @@ async function Checkout() {
       <PageHeader kicker="Checkout · step 1 of 2" title="Reserve, don’t pay yet">
         <p>
           We keep the postal address on this reservation so we can ship after the pieces are made. Payment opens once
-          100 AFM Saucer Mods are reserved. You can reserve more than that.
+          100 AFM Saucer MOD reservations are in. No payment is required upfront.
         </p>
       </PageHeader>
       <CheckoutStepper step={1} canPay={canPay} />

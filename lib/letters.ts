@@ -74,18 +74,27 @@ export function shippedLetter(input: {
   };
 }
 
-export function welcomeLetter(name: string): LetterDraft {
+export function welcomeLetter(): LetterDraft {
   return {
-    subject: "Welcome to Hundert",
-    title: "Welcome to Hundert",
+    subject: "Account Created for AMF Saucer Shop",
+    title: "Account Created for AMF Saucer Shop",
     href: "/",
+    body: ["You have successfully created your account for the AMF Saucer Shop", "Thank you"].join("\n"),
+  };
+}
+
+export function reservationLetter(input: { name: string; productName: string; quantity: number }): LetterDraft {
+  return {
+    subject: `Reservation received for ${input.productName}`,
+    title: "Reservation received",
+    href: "/orders",
     body: [
-      `Hello ${name},`,
+      `Hello ${input.name},`,
       "",
-      "Your account is open. Reserve a piece whenever you like.",
-      "You are asked to pay only when 100 pieces of that same product are reserved. We then produce it and ship it to your postal address.",
+      `You reserved ${pieces(input.quantity)} of the ${input.productName}.`,
+      "No payment is required upfront. You will be asked to pay when production begins at 100 reservations.",
       "",
-      "Link: /",
+      "Link: /orders",
     ].join("\n"),
   };
 }
@@ -93,7 +102,7 @@ export function welcomeLetter(name: string): LetterDraft {
 export function resetLetter(input: { name: string; email: string; token: string }): LetterDraft {
   const href = `/reset-password?token=${input.token}`;
   return {
-    subject: "Reset your Hundert password",
+    subject: "Reset your donmartins password",
     title: "Password reset",
     href,
     body: [

@@ -17,11 +17,11 @@ const fraunces = Fraunces({
 
 export const metadata: Metadata = {
   title: {
-    default: "Hundert",
-    template: "%s · Hundert",
+    default: "donmartins",
+    template: "%s · donmartins",
   },
   description:
-    "The AFM Saucer Mod. Reserve as many as you need. Production starts once 100 are reserved, and you can keep reserving after that.",
+    "Please register to pre-order the AFM Saucer MOD. Production starts once we reach 100 reservations. No payment is required upfront.",
 };
 
 export const instant = false;

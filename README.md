@@ -1,6 +1,6 @@
-# Hundert
+# donmartins
 
-Hundert sells one piece: the **AFM Saucer Mod**. Accounts, carts, reservations, postal addresses, payments, and shipping live in a SQLite database at `data/shop.db`.
+donmartins sells one piece: the **AFM Saucer MOD**. Please register to pre-order. Production starts once 100 reservations are in. No payment is required upfront. Accounts, carts, reservations, postal addresses, payments, and shipping live in a SQLite database at `data/shop.db`.
 
 1. You create an account with a postal address we can ship to, and you can ask for a password reset.
 2. You add any quantity to a cart and **reserve** it. That is checkout step 1. Nothing is charged. The shop starts at **0 reserved**, and the quantity is not limited.
@@ -20,7 +20,7 @@ npm run dev
 
 Open [http://127.0.0.1:4317](http://127.0.0.1:4317).
 
-The shop database is created at `data/shop.db` the first time the app runs. An older catalog is replaced by the AFM Saucer Mod on the next start, and existing accounts are kept. Delete that file to start again from zero reserved.
+The shop database is created at `data/shop.db` the first time the app runs. An older catalog is replaced by the AFM Saucer MOD on the next start, and existing accounts are kept. Delete that file to start again from zero reserved. A new account receives the confirmation “Account Created for AMF Saucer Shop” in Notices and in the post office at `/post`.
 
 ```bash
 npm test

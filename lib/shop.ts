@@ -6,6 +6,7 @@ import { formatDay, zurichDayKey } from "./format";
 import {
   paymentDueLetter,
   paymentReceivedLetter,
+  reservationLetter,
   resetLetter,
   shippedLetter,
   welcomeLetter,
@@ -184,7 +185,7 @@ export function registerUser(db: DatabaseSync, input: RegisterInput) {
     value.country,
     now,
   );
-  deliver(db, id, email.value, welcomeLetter(value.name), now);
+  deliver(db, id, email.value, welcomeLetter(), now);
   const user = getUserById(db, id);
   if (!user) throw new ShopError("The account could not be created.");
   return user;
@@ -360,7 +361,7 @@ function allocate(db: DatabaseSync, userId: string, lines: LineRequest[]) {
   const before = new Map(lines.map((line) => [line.productId, reservedCount(db, line.productId)]));
 
   for (const line of lines) {
-    const product = one(db, "SELECT id, price_cents FROM products WHERE id = ?", line.productId);
+    const product = one(db, "SELECT id, name, price_cents FROM products WHERE id = ?", line.productId);
     if (!product) throw new ShopError("A piece in your cart is no longer in the workshop.");
     const batchId = ensurePool(db, line.productId);
     const value = address.value;
@@ -391,6 +392,17 @@ function allocate(db: DatabaseSync, userId: string, lines: LineRequest[]) {
       "UPDATE batches SET filled_qty = filled_qty + ? WHERE id = ?",
       line.quantity,
       batchId,
+    );
+    deliver(
+      db,
+      userId,
+      user.email,
+      reservationLetter({
+        name: user.name,
+        productName: str(product, "name"),
+        quantity: line.quantity,
+      }),
+      now,
     );
     const previous = before.get(line.productId) ?? 0;
     const total = reservedCount(db, line.productId);
@@ -692,6 +704,51 @@ export function markAllPaidShipped(db: DatabaseSync, productId: string) {
   ).map((row) => str(row, "id"));
   for (const id of ids) markShipped(db, id);
   return ids.length;
+}
+
+export type ReservationNotice = Notice & {
+  email: string;
+  name: string;
+};
+
+export function listReservationNotices(db: DatabaseSync): ReservationNotice[] {
+  return many(
+    db,
+    `SELECT n.id, n.title, n.body, n.href, n.read_at, n.created_at, u.email, u.name
+     FROM notifications n
+     JOIN users u ON u.id = n.user_id
+     WHERE n.href IN ('/checkout/pay', '/orders')
+     ORDER BY n.created_at DESC, n.id DESC`,
+  ).map((row) => ({
+    id: str(row, "id"),
+    title: str(row, "title"),
+    body: str(row, "body"),
+    href: strOrNull(row, "href"),
+    createdAt: str(row, "created_at"),
+    readAt: strOrNull(row, "read_at"),
+    email: str(row, "email"),
+    name: str(row, "name"),
+  }));
+}
+
+export function reservationNoticeCount(db: DatabaseSync) {
+  const row = one(
+    db,
+    "SELECT COUNT(*) AS count FROM notifications WHERE href IN ('/checkout/pay', '/orders')",
+  );
+  return row ? int(row, "count") : 0;
+}
+
+export function clearLeaNoticesOnce(db: DatabaseSync) {
+  db.exec("CREATE TABLE IF NOT EXISTS shop_flags (key TEXT PRIMARY KEY, value TEXT NOT NULL);");
+  const flag = one(db, "SELECT value FROM shop_flags WHERE key = 'lea_notices_cleared'");
+  if (flag) return;
+  run(
+    db,
+    "DELETE FROM notifications WHERE user_id = (SELECT id FROM users WHERE email = ?)",
+    DEMO_ACCOUNTS.buyer.email,
+  );
+  run(db, "INSERT INTO shop_flags (key, value) VALUES ('lea_notices_cleared', '1')");
 }
 
 export function listNotices(db: DatabaseSync, userId: string): Notice[] {

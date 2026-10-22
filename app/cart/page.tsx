@@ -35,7 +35,7 @@ async function Cart() {
         <div className="rounded-xl border border-dashed border-border px-5 py-10">
           <p className="font-serif text-2xl">The cart is empty.</p>
           <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">
-            The AFM Saucer Mod starts at zero reserved. Production starts once 100 are reserved.
+            The AFM Saucer MOD starts at zero reserved. Production starts once 100 reservations are in. No payment is required upfront.
           </p>
           <Link href="/" className={cn(buttonVariants({ size: "lg" }), "mt-5 h-11 px-5")}>
             Browse the workshop

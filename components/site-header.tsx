@@ -5,7 +5,7 @@ import { MobileMenu } from "@/components/mobile-menu";
 import { SubmitButton } from "@/components/submit-button";
 import { live } from "@/lib/live";
 import { readSessionUser } from "@/lib/session";
-import { cartCount, listPaymentDue, unreadCount } from "@/lib/shop";
+import { cartCount, listPaymentDue, reservationNoticeCount, unreadCount } from "@/lib/shop";
 import { getDb } from "@/lib/db";
 
 export function SiteHeader() {
@@ -13,16 +13,32 @@ export function SiteHeader() {
     <header className="sticky top-0 z-40 border-b border-border bg-background/92 backdrop-blur-sm">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
         <Link href="/" className="block shrink-0">
-          <span className="font-serif text-2xl tracking-tight">Hundert</span>
+          <span className="font-serif text-2xl tracking-tight">donmartins</span>
           <span className="block text-[0.65rem] tracking-[0.18em] text-muted-foreground uppercase">
-            Zürich atelier
+            AFM Saucer MOD
           </span>
         </Link>
         <Suspense fallback={<p className="text-sm text-muted-foreground">Shop</p>}>
           <SessionNav />
         </Suspense>
       </div>
+      <Suspense fallback={null}>
+        <SignedInRow />
+      </Suspense>
     </header>
+  );
+}
+
+async function SignedInRow() {
+  await live();
+  const user = await readSessionUser();
+  if (!user) return null;
+  return (
+    <div className="border-t border-border">
+      <p className="mx-auto max-w-6xl px-4 py-2 text-sm font-bold sm:px-6">
+        {user.name} · {user.email}
+      </p>
+    </div>
   );
 }
 
@@ -31,7 +47,7 @@ async function SessionNav() {
   const user = await readSessionUser();
   const db = getDb();
   const count = user ? cartCount(db, user.id) : 0;
-  const unread = user ? unreadCount(db, user.id) : 0;
+  const unread = user ? (user.role === "admin" ? reservationNoticeCount(db) : unreadCount(db, user.id)) : 0;
   const due = user ? listPaymentDue(db, user.id).length : 0;
   const links = navLinks(user, count, unread, due);
 
@@ -55,7 +71,7 @@ async function SessionNav() {
           </Link>
         )}
       </nav>
-      <MobileMenu links={links} signedIn={Boolean(user)} />
+      <MobileMenu links={links} signedIn={Boolean(user)} userName={user ? `${user.name} · ${user.email}` : null} />
     </>
   );
 }

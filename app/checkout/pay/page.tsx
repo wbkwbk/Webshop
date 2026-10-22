@@ -36,7 +36,7 @@ async function Pay() {
         <div className="max-w-xl rounded-xl border border-dashed border-border px-5 py-10">
           <p className="font-serif text-2xl">Nothing is waiting on payment.</p>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">
-            Reservations stay unpaid until 100 AFM Saucer Mods are reserved. After that, a new reservation can be paid straight away.
+            Reservations stay unpaid until 100 AFM Saucer MOD reservations are in. After that, a new reservation can be paid straight away.
           </p>
           <Link href="/orders" className={cn(buttonVariants({ size: "lg" }), "mt-5 h-11 px-5")}>
             See your orders

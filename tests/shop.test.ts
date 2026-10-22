@@ -8,7 +8,9 @@ import {
   addToCart,
   authenticate,
   getCart,
+  clearLeaNoticesOnce,
   groupOrderedItems,
+  listReservationNotices,
   listLetters,
   listNotices,
   listOrderedItems,
@@ -264,7 +266,7 @@ test("the shop starts with the AFM Saucer Mod and zero reserved", () => {
   const products = listProducts(db);
   assert.equal(products.length, 1);
   assert.equal(products[0]?.slug, "afm-saucer-mod");
-  assert.equal(products[0]?.name, "AFM Saucer Mod");
+  assert.equal(products[0]?.name, "AFM Saucer MOD");
   assert.equal(products[0]?.openFilled, 0);
   assert.equal(products[0]?.reservedQty, 0);
   assert.equal(products[0]?.priceCents, 18000);
@@ -287,7 +289,7 @@ test("an older catalog is replaced by the saucer and keeps user accounts", () =>
   ensureCatalog(db);
   const products = listProducts(db);
   assert.equal(products.length, 1);
-  assert.equal(products[0]?.name, "AFM Saucer Mod");
+  assert.equal(products[0]?.name, "AFM Saucer MOD");
   assert.equal(products[0]?.openFilled, 0);
   assert.equal(listOrders(db, user.id).length, 0);
   assert.equal(authenticate(db, "kept@example.com", "password-1")?.id, user.id);
@@ -319,4 +321,33 @@ test("ordered items can be sorted and grouped by user, state, and date", () => {
   assert.deepEqual(byDate, ["2026-10-03", "2026-10-02"]);
   const newestFirst = groupOrderedItems(lines, "none", "date", "desc").flatMap((group) => group.lines.map((line) => line.email));
   assert.deepEqual(newestFirst, ["ada@example.com", "noa@example.com"]);
+});
+
+test("a new account gets the AMF confirmation letter", () => {
+  const db = memory();
+  const user = createUser(db, "new@example.com");
+  const letter = listLetters(db).find((item) => item.toEmail === "new@example.com");
+  assert.ok(letter);
+  assert.equal(letter.subject, "Account Created for AMF Saucer Shop");
+  assert.match(letter.body, /successfully created your account for the AMF Saucer Shop/);
+  assert.match(letter.body, /Thank you/);
+  assert.equal(listNotices(db, user.id).some((notice) => notice.title.includes("Account Created")), true);
+});
+
+test("reservation notices list every buyer, and Lea's old notices clear once", () => {
+  const db = memory();
+  addProduct(db);
+  const lea = createUser(db, "lea@hundert.shop", { name: "Lea Keller" });
+  const noa = createUser(db, "noa@example.com", { name: "Noa Frei" });
+  assert.equal(listNotices(db, lea.id).length > 0, true);
+  clearLeaNoticesOnce(db);
+  assert.equal(listNotices(db, lea.id).length, 0);
+  reserveForUser(db, lea.id, [{ productId: "prd_test", quantity: 2 }]);
+  reserveForUser(db, noa.id, [{ productId: "prd_test", quantity: 3 }]);
+  clearLeaNoticesOnce(db);
+  assert.equal(listNotices(db, lea.id).some((notice) => notice.title === "Reservation received"), true);
+  const notices = listReservationNotices(db);
+  const emails = notices.map((notice) => notice.email).sort();
+  assert.deepEqual(emails, ["lea@hundert.shop", "noa@example.com"]);
+  assert.equal(listNotices(db, noa.id).some((notice) => notice.href === "/orders"), true);
 });

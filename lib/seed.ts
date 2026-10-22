@@ -43,11 +43,11 @@ const PEOPLE: Person[] = [
 const SAUCER = {
   id: "prd_saucer",
   slug: "afm-saucer-mod",
-  name: "AFM Saucer Mod",
+  name: "AFM Saucer MOD",
   price: 18000,
-  summary: "The only piece in the shop. Reserve as many as you need.",
+  summary: "Please register to pre-order.",
   description:
-    "Production starts once 100 AFM Saucer Mods are reserved. You can reserve more than that. Nothing is charged until production has started, and every reservation keeps the postal address we ship to.",
+    "Production starts once we reach 100 reservations. No payment is required upfront—you will only be asked to pay when production begins at 100 orders.",
 };
 
 export function seedWorkshop(db: DatabaseSync) {
@@ -78,6 +78,14 @@ export function ensureCatalog(db: DatabaseSync) {
   const products = many(db, "SELECT slug FROM products");
   const onlySaucer = products.length === 1 && String(products[0]?.slug) === SAUCER.slug;
   if (onlySaucer) {
+    run(
+      db,
+      "UPDATE products SET name = ?, summary = ?, description = ? WHERE slug = ?",
+      SAUCER.name,
+      SAUCER.summary,
+      SAUCER.description,
+      SAUCER.slug,
+    );
     const batch = one(db, "SELECT id FROM batches WHERE product_id = ? AND status = 'open'", SAUCER.id);
     if (!batch) insertPool(db);
     return;
