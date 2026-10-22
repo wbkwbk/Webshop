@@ -43,7 +43,7 @@ export async function registerAction(_prev: ActionState, formData: FormData): Pr
   } catch (error) {
     return failure(error, values);
   }
-  redirect(safeNext(values.next));
+  redirect("/notifications?created=1");
 }
 
 export async function loginAction(_prev: ActionState, formData: FormData): Promise<ActionState> {

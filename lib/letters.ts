@@ -74,12 +74,18 @@ export function shippedLetter(input: {
   };
 }
 
-export function welcomeLetter(): LetterDraft {
+export function welcomeLetter(email: string): LetterDraft {
   return {
     subject: "Account Created for AMF Saucer Shop",
     title: "Account Created for AMF Saucer Shop",
-    href: "/",
-    body: ["You have successfully created your account for the AMF Saucer Shop", "Thank you"].join("\n"),
+    href: "/notifications",
+    body: [
+      `To: ${email}`,
+      "Subject: Account Created for AMF Saucer Shop",
+      "",
+      "You have successfully created your account for the AMF Saucer Shop",
+      "Thank you",
+    ].join("\n"),
   };
 }
 

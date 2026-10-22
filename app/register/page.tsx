@@ -26,8 +26,8 @@ async function Register({ searchParams }: { searchParams: SearchParams }) {
     <Frame>
       <PageHeader kicker="Account" title="Create an account">
         <p>
-          Registration asks for a postal address up front. We will not reserve a piece until that address has a street,
-          a house number, and a postal code that matches the country.
+          Registration asks for a postal address up front. When the account is created, a confirmation email is sent.
+          You can read it in Notices. There is no outside mail server, so the same letter is kept in the post office.
         </p>
       </PageHeader>
       <RegisterForm next={next} />

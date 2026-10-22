@@ -1,25 +1,27 @@
 import Link from "next/link";
 import { Suspense } from "react";
-import { Frame, PageHeader } from "@/components/frame";
+import { Banner, Frame, PageHeader } from "@/components/frame";
 import { LetterBody } from "@/components/letter-body";
 import { getDb } from "@/lib/db";
 import { formatWhen } from "@/lib/format";
 import { requireUser } from "@/lib/session";
 import { listNotices, listReservationNotices, markNoticesRead, type ReservationNotice } from "@/lib/shop";
-import type { Notice } from "@/lib/types";
+import type { Notice, SearchParams } from "@/lib/types";
 
 export const metadata = { title: "Notices" };
 
-export default function NoticesPage() {
+export default function NoticesPage({ searchParams }: { searchParams: SearchParams }) {
   return (
     <Suspense fallback={null}>
-      <Notices />
+      <Notices searchParams={searchParams} />
     </Suspense>
   );
 }
 
-async function Notices() {
+async function Notices({ searchParams }: { searchParams: SearchParams }) {
   const user = await requireUser("/notifications");
+  const query = await searchParams;
+  const created = query.created === "1";
   const db = getDb();
   const superuser = user.role === "admin";
   const notices = superuser ? listReservationNotices(db) : listNotices(db, user.id);
@@ -39,6 +41,12 @@ async function Notices() {
           .
         </p>
       </PageHeader>
+      {created ? (
+        <Banner tone="good">
+          Confirmation email sent to {user.email}. Subject: Account Created for AMF Saucer Shop. The letter is below,
+          and the same copy is in the post office.
+        </Banner>
+      ) : null}
       {notices.length === 0 ? (
         <div className="rounded-xl border border-dashed border-border px-5 py-10">
           <p className="font-serif text-2xl">No notices yet.</p>

@@ -23,8 +23,8 @@ async function Post() {
     <Frame>
       <PageHeader kicker="Demo post office" title="Letters kept on this machine">
         <p>
-          Password resets and payment requests are written here. There is no mail server, so this is the inbox for
-          every account in the workshop.
+          Account confirmations, password resets, and payment requests are written here. There is no mail server, so
+          this is the inbox for every account.
         </p>
       </PageHeader>
       {letters.length === 0 ? (

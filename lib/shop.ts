@@ -185,7 +185,7 @@ export function registerUser(db: DatabaseSync, input: RegisterInput) {
     value.country,
     now,
   );
-  deliver(db, id, email.value, welcomeLetter(), now);
+  deliver(db, id, email.value, welcomeLetter(email.value), now);
   const user = getUserById(db, id);
   if (!user) throw new ShopError("The account could not be created.");
   return user;
