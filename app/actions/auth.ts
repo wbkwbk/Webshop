@@ -58,8 +58,12 @@ export async function loginAction(_prev: ActionState, formData: FormData): Promi
 
 export async function forgotAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
   const values = readStrings(formData, ["email"]);
-  requestPasswordReset(getDb(), values.email);
-  redirect("/forgot-password?sent=1");
+  const letter = requestPasswordReset(getDb(), values.email);
+  return {
+    ok: "sent",
+    values,
+    ...(letter ? { letter: { subject: letter.subject, body: letter.body } } : {}),
+  };
 }
 
 export async function resetAction(_prev: ActionState, formData: FormData): Promise<ActionState> {

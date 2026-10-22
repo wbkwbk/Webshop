@@ -19,8 +19,8 @@ async function Forgot({ searchParams }: { searchParams: SearchParams }) {
     <Frame>
       <PageHeader kicker="Account" title="Forgot password">
         <p>
-          Ask for a reset letter. Because this shop has no mail server, the letter appears in the demo post office
-          instead of an inbox.
+          Ask for a reset letter. Because this shop has no mail server, the letter is shown here and kept for that
+          account only.
         </p>
       </PageHeader>
       <ForgotForm sent={query.sent === "1"} />

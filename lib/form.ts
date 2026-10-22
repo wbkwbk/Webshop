@@ -5,6 +5,7 @@ export type ActionState = {
   ok?: string;
   fieldErrors?: Record<string, string>;
   values?: Record<string, string>;
+  letter?: { subject: string; body: string };
 };
 
 export const emptyState: ActionState = {};

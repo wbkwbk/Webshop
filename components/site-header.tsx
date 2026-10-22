@@ -5,7 +5,7 @@ import { MobileMenu } from "@/components/mobile-menu";
 import { SubmitButton } from "@/components/submit-button";
 import { live } from "@/lib/live";
 import { readSessionUser } from "@/lib/session";
-import { cartCount, listPaymentDue, reservationNoticeCount, unreadCount } from "@/lib/shop";
+import { cartCount, listPaymentDue, unreadCount } from "@/lib/shop";
 import { getDb } from "@/lib/db";
 
 export function SiteHeader() {
@@ -47,7 +47,7 @@ async function SessionNav() {
   const user = await readSessionUser();
   const db = getDb();
   const count = user ? cartCount(db, user.id) : 0;
-  const unread = user ? (user.role === "admin" ? reservationNoticeCount(db) : unreadCount(db, user.id)) : 0;
+  const unread = user ? unreadCount(db, user.id) : 0;
   const due = user ? listPaymentDue(db, user.id).length : 0;
   const links = navLinks(user, count, unread, due);
 

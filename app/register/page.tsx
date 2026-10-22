@@ -27,7 +27,7 @@ async function Register({ searchParams }: { searchParams: SearchParams }) {
       <PageHeader kicker="Account" title="Create an account">
         <p>
           Registration asks for a postal address up front. When the account is created, a confirmation email is sent.
-          You can read it in Notices. There is no outside mail server, so the same letter is kept in the post office.
+          You can read it in Notices. There is no outside mail server, so the same letter is kept in your post office.
         </p>
       </PageHeader>
       <RegisterForm next={next} />

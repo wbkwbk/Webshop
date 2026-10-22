@@ -16,7 +16,7 @@ export function SiteFooter() {
             Demo post office
           </Link>
           <p className="max-w-xs leading-6 sm:text-right">
-            Account confirmations, password resets, and payment letters are kept here.
+            Your account confirmations, password resets, and payment letters are kept here.
           </p>
         </div>
       </div>

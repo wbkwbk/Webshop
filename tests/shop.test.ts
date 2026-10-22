@@ -11,6 +11,7 @@ import {
   clearLeaNoticesOnce,
   groupOrderedItems,
   listReservationNotices,
+  getLetter,
   listLetters,
   listNotices,
   listOrderedItems,
@@ -321,6 +322,20 @@ test("ordered items can be sorted and grouped by user, state, and date", () => {
   assert.deepEqual(byDate, ["2026-10-03", "2026-10-02"]);
   const newestFirst = groupOrderedItems(lines, "none", "date", "desc").flatMap((group) => group.lines.map((line) => line.email));
   assert.deepEqual(newestFirst, ["ada@example.com", "noa@example.com"]);
+});
+
+test("each account only reads its own letters", () => {
+  const db = memory();
+  const ada = createUser(db, "ada@example.com");
+  const noa = createUser(db, "noa@example.com");
+  const adaLetters = listLetters(db, ada.email);
+  const noaLetters = listLetters(db, noa.email);
+  assert.equal(adaLetters.length > 0, true);
+  assert.equal(adaLetters.every((letter) => letter.toEmail === ada.email), true);
+  assert.equal(noaLetters.every((letter) => letter.toEmail === noa.email), true);
+  const adaId = adaLetters[0]?.id ?? "";
+  assert.equal(getLetter(db, adaId, noa.email), null);
+  assert.equal(getLetter(db, adaId, ada.email)?.id, adaId);
 });
 
 test("a new account gets the AMF confirmation letter", () => {

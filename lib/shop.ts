@@ -212,9 +212,9 @@ export function saveAddress(db: DatabaseSync, userId: string, input: Address) {
   return value;
 }
 
-export function requestPasswordReset(db: DatabaseSync, email: string, now = new Date()) {
+export function requestPasswordReset(db: DatabaseSync, email: string, now = new Date()): Letter | null {
   const user = getUserByEmail(db, email);
-  if (!user) return;
+  if (!user) return null;
   const token = randomBytes(32).toString("base64url");
   const expires = new Date(now.getTime() + RESET_MINUTES * 60 * 1000).toISOString();
   run(
@@ -227,15 +227,18 @@ export function requestPasswordReset(db: DatabaseSync, email: string, now = new 
     expires,
   );
   const letter = resetLetter({ name: user.name, email: user.email, token });
+  const createdAt = now.toISOString();
+  const id = crypto.randomUUID();
   run(
     db,
     `INSERT INTO outbox (id, to_email, subject, body, created_at) VALUES (?, ?, ?, ?, ?)`,
-    crypto.randomUUID(),
+    id,
     user.email,
     letter.subject,
     letter.body,
-    now.toISOString(),
+    createdAt,
   );
+  return { id, toEmail: user.email, subject: letter.subject, body: letter.body, createdAt };
 }
 
 export function resetPassword(db: DatabaseSync, token: string, password: string, now = new Date()) {
@@ -731,14 +734,6 @@ export function listReservationNotices(db: DatabaseSync): ReservationNotice[] {
   }));
 }
 
-export function reservationNoticeCount(db: DatabaseSync) {
-  const row = one(
-    db,
-    "SELECT COUNT(*) AS count FROM notifications WHERE href IN ('/checkout/pay', '/orders')",
-  );
-  return row ? int(row, "count") : 0;
-}
-
 export function clearLeaNoticesOnce(db: DatabaseSync) {
   db.exec("CREATE TABLE IF NOT EXISTS shop_flags (key TEXT PRIMARY KEY, value TEXT NOT NULL);");
   const flag = one(db, "SELECT value FROM shop_flags WHERE key = 'lea_notices_cleared'");
@@ -785,21 +780,38 @@ export function markNoticesRead(db: DatabaseSync, userId: string, now = new Date
   );
 }
 
-export function listLetters(db: DatabaseSync): Letter[] {
-  return many(
-    db,
-    "SELECT id, to_email, subject, body, created_at FROM outbox ORDER BY created_at DESC, id DESC",
-  ).map((row) => ({
+function mapLetter(row: Row): Letter {
+  return {
     id: str(row, "id"),
     toEmail: str(row, "to_email"),
     subject: str(row, "subject"),
     body: str(row, "body"),
     createdAt: str(row, "created_at"),
-  }));
+  };
 }
 
-export function getLetter(db: DatabaseSync, id: string) {
-  return listLetters(db).find((letter) => letter.id === id) ?? null;
+export function listLetters(db: DatabaseSync, email?: string): Letter[] {
+  const scoped = Boolean(email);
+  return many(
+    db,
+    `SELECT id, to_email, subject, body, created_at
+     FROM outbox
+     ${scoped ? "WHERE to_email = ? COLLATE NOCASE" : ""}
+     ORDER BY created_at DESC, id DESC`,
+    ...(email ? [email] : []),
+  ).map(mapLetter);
+}
+
+export function getLetter(db: DatabaseSync, id: string, email: string) {
+  const row = one(
+    db,
+    `SELECT id, to_email, subject, body, created_at
+     FROM outbox
+     WHERE id = ? AND to_email = ? COLLATE NOCASE`,
+    id,
+    email,
+  );
+  return row ? mapLetter(row) : null;
 }
 
 function deliver(

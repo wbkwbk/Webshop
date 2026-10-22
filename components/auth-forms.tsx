@@ -5,6 +5,7 @@ import { useActionState, useState } from "react";
 import { forgotAction, loginAction, registerAction, resetAction } from "@/app/actions/auth";
 import { AddressFields } from "@/components/address-fields";
 import { Field } from "@/components/field";
+import { LetterBody } from "@/components/letter-body";
 import { SubmitButton } from "@/components/submit-button";
 import { Input } from "@/components/ui/input";
 import { DEMO_ACCOUNTS } from "@/lib/constants";
@@ -157,16 +158,22 @@ export function RegisterForm({ next }: { next: string }) {
 
 export function ForgotForm({ sent }: { sent: boolean }) {
   const [state, action] = useActionState(forgotAction, emptyState);
+  const delivered = sent || state.ok === "sent";
   return (
     <form action={action} className="grid max-w-md gap-4">
-      {sent ? (
+      {delivered ? (
         <p className="rounded-lg border border-border bg-card px-4 py-3 text-sm leading-6" role="status">
-          If an account uses that email, a reset letter is in the{" "}
-          <Link href="/post" className="text-primary underline-offset-4 hover:underline">
-            demo post office
-          </Link>
-          . This shop does not send real email.
+          If an account uses that email, the reset letter is below and is kept for that account. Other accounts cannot
+          read it. This shop does not send real email.
         </p>
+      ) : null}
+      {state.letter ? (
+        <article className="rounded-xl border border-border bg-card p-4">
+          <p className="font-medium">{state.letter.subject}</p>
+          <div className="mt-3">
+            <LetterBody body={state.letter.body} />
+          </div>
+        </article>
       ) : null}
       {state.formError ? (
         <p className="text-sm text-destructive" role="alert">

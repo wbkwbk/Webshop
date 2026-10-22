@@ -4,6 +4,7 @@ import { Frame, PageHeader } from "@/components/frame";
 import { getDb } from "@/lib/db";
 import { formatWhen } from "@/lib/format";
 import { live } from "@/lib/live";
+import { requireUser } from "@/lib/session";
 import { listLetters } from "@/lib/shop";
 
 export const metadata = { title: "Post office" };
@@ -18,17 +19,18 @@ export default function PostPage() {
 
 async function Post() {
   await live();
-  const letters = listLetters(getDb());
+  const user = await requireUser("/post");
+  const letters = listLetters(getDb(), user.email);
   return (
     <Frame>
-      <PageHeader kicker="Demo post office" title="Letters kept on this machine">
+      <PageHeader kicker="Your post" title="Letters for your account">
         <p>
-          Account confirmations, password resets, and payment requests are written here. There is no mail server, so
-          this is the inbox for every account.
+          Account confirmations, password resets, and payment requests addressed to {user.email} are kept here. There
+          is no mail server, and other accounts cannot read these letters.
         </p>
       </PageHeader>
       {letters.length === 0 ? (
-        <p className="text-sm text-muted-foreground">The post office is empty.</p>
+        <p className="text-sm text-muted-foreground">You have no letters.</p>
       ) : (
         <ul className="grid gap-3">
           {letters.map((letter) => (
