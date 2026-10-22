@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { mailIsConfigured } from "@/lib/mail";
 
 export function SiteFooter() {
   return (
@@ -17,6 +18,7 @@ export function SiteFooter() {
           </Link>
           <p className="max-w-xs leading-6 sm:text-right">
             Your account confirmations, password resets, and payment letters are kept here.
+            {mailIsConfigured() ? " The same letters are emailed from afmsaucer@donmartinshop.ch." : ""}
           </p>
         </div>
       </div>

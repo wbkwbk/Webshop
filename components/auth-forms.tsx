@@ -156,7 +156,7 @@ export function RegisterForm({ next }: { next: string }) {
   );
 }
 
-export function ForgotForm({ sent }: { sent: boolean }) {
+export function ForgotForm({ sent, mailed = false }: { sent: boolean; mailed?: boolean }) {
   const [state, action] = useActionState(forgotAction, emptyState);
   const delivered = sent || state.ok === "sent";
   return (
@@ -164,7 +164,7 @@ export function ForgotForm({ sent }: { sent: boolean }) {
       {delivered ? (
         <p className="rounded-lg border border-border bg-card px-4 py-3 text-sm leading-6" role="status">
           If an account uses that email, the reset letter is below and is kept for that account. Other accounts cannot
-          read it. This shop does not send real email.
+          read it.{mailed ? " A copy is emailed from afmsaucer@donmartinshop.ch." : ""}
         </p>
       ) : null}
       {state.letter ? (

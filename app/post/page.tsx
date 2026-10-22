@@ -4,6 +4,7 @@ import { Frame, PageHeader } from "@/components/frame";
 import { getDb } from "@/lib/db";
 import { formatWhen } from "@/lib/format";
 import { live } from "@/lib/live";
+import { mailIsConfigured } from "@/lib/mail";
 import { requireUser } from "@/lib/session";
 import { listLetters } from "@/lib/shop";
 
@@ -25,8 +26,9 @@ async function Post() {
     <Frame>
       <PageHeader kicker="Your post" title="Letters for your account">
         <p>
-          Account confirmations, password resets, and payment requests addressed to {user.email} are kept here. There
-          is no mail server, and other accounts cannot read these letters.
+          Account confirmations, password resets, and payment requests addressed to {user.email} are kept here. Other
+          accounts cannot read these letters.
+          {mailIsConfigured() ? " The same letter is emailed from afmsaucer@donmartinshop.ch." : ""}
         </p>
       </PageHeader>
       {letters.length === 0 ? (

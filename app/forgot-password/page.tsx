@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { ForgotForm } from "@/components/auth-forms";
 import { Frame, PageHeader } from "@/components/frame";
+import { mailIsConfigured } from "@/lib/mail";
 import type { SearchParams } from "@/lib/types";
 
 export const metadata = { title: "Forgot password" };
@@ -19,11 +20,13 @@ async function Forgot({ searchParams }: { searchParams: SearchParams }) {
     <Frame>
       <PageHeader kicker="Account" title="Forgot password">
         <p>
-          Ask for a reset letter. Because this shop has no mail server, the letter is shown here and kept for that
-          account only.
+          Ask for a reset letter. It is kept for that account only.
+          {mailIsConfigured()
+            ? " The same letter is emailed from afmsaucer@donmartinshop.ch."
+            : " It is also shown on this page."}
         </p>
       </PageHeader>
-      <ForgotForm sent={query.sent === "1"} />
+      <ForgotForm sent={query.sent === "1"} mailed={mailIsConfigured()} />
     </Frame>
   );
 }

@@ -11,6 +11,7 @@ import {
   shippedLetter,
   welcomeLetter,
 } from "./letters";
+import { queueShopMail } from "./mail";
 import { hashPassword, sha256, verifyPassword } from "./password";
 import { int, str, strOrNull, type Row } from "./rows";
 import { many, one, run, withTransaction } from "./sql";
@@ -238,6 +239,7 @@ export function requestPasswordReset(db: DatabaseSync, email: string, now = new 
     letter.body,
     createdAt,
   );
+  queueShopMail({ to: user.email, subject: letter.subject, text: letter.body });
   return { id, toEmail: user.email, subject: letter.subject, body: letter.body, createdAt };
 }
 
@@ -841,4 +843,5 @@ function deliver(
     letter.body,
     now,
   );
+  queueShopMail({ to: email, subject: letter.subject, text: letter.body });
 }

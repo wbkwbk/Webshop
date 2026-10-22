@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { describeAllocation } from "../lib/batches";
 import { openDatabase } from "../lib/db";
+import { mailText } from "../lib/mail";
 import { ensureCatalog } from "../lib/seed";
 import { run } from "../lib/sql";
 import {
@@ -322,6 +323,12 @@ test("ordered items can be sorted and grouped by user, state, and date", () => {
   assert.deepEqual(byDate, ["2026-10-03", "2026-10-02"]);
   const newestFirst = groupOrderedItems(lines, "none", "date", "desc").flatMap((group) => group.lines.map((line) => line.email));
   assert.deepEqual(newestFirst, ["ada@example.com", "noa@example.com"]);
+});
+
+test("emailed links use the public shop address", () => {
+  const body = "Please pay.\n\nLink: /checkout/pay\n";
+  assert.equal(mailText(body, ""), body);
+  assert.equal(mailText(body, "https://donmartinshop.ch/"), "Please pay.\n\nLink: https://donmartinshop.ch/checkout/pay\n");
 });
 
 test("each account only reads its own letters", () => {

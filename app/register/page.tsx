@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { RegisterForm } from "@/components/auth-forms";
 import { Frame, PageHeader } from "@/components/frame";
 import { live, safeNext } from "@/lib/live";
+import { mailIsConfigured } from "@/lib/mail";
 import { readSessionUser } from "@/lib/session";
 import type { SearchParams } from "@/lib/types";
 
@@ -26,8 +27,9 @@ async function Register({ searchParams }: { searchParams: SearchParams }) {
     <Frame>
       <PageHeader kicker="Account" title="Create an account">
         <p>
-          Registration asks for a postal address up front. When the account is created, a confirmation email is sent.
-          You can read it in Notices. There is no outside mail server, so the same letter is kept in your post office.
+          Registration asks for a postal address up front. When the account is created, a confirmation letter is kept
+          in Notices and in your post office.
+          {mailIsConfigured() ? " The same letter is emailed to you from afmsaucer@donmartinshop.ch." : ""}
         </p>
       </PageHeader>
       <RegisterForm next={next} />
