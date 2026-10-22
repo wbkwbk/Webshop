@@ -244,5 +244,9 @@ test("the seeded workshop matches the batch story", () => {
   assert.equal(listPaymentDue(db, lea.id).length, 1);
   assert.equal(listPaymentDue(db, lea.id)[0]?.productName, "Merino throw");
   const ada = authenticate(db, "ada@hundert.shop", "atelier-admin");
-  assert.equal(ada?.role, "admin");
+  assert.equal(ada?.role, "customer");
+  const superuser = authenticate(db, "superuser", "superuser");
+  assert.equal(superuser?.role, "admin");
+  assert.equal(authenticate(db, "superuser@hundert.shop", "superuser")?.id, superuser?.id);
+  assert.equal(authenticate(db, "lea@hundert.shop", "superuser"), null);
 });

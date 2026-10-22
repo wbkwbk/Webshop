@@ -29,8 +29,8 @@ async function Orders({ searchParams }: { searchParams: SearchParams }) {
 
   return (
     <Frame>
-      <PageHeader kicker="Your batches" title="Orders">
-        <p>Reserved means we are holding the pieces. Paid means production can start. Shipped means they have left.</p>
+      <PageHeader kicker="Your batches" title="Your orders">
+        <p>This list is only yours. Reserved means we are holding your pieces. Paid means production can start. Shipped means they have left for you.</p>
       </PageHeader>
       {paid ? (
         <Banner tone="good">

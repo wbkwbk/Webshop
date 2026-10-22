@@ -4,11 +4,12 @@ export const SESSION_DAYS = 14;
 export const RESET_MINUTES = 60;
 
 export const DEMO_ACCOUNTS = {
-  admin: {
-    email: "ada@hundert.shop",
-    password: "atelier-admin",
-    name: "Ada Meier",
-    blurb: "Workshop floor — reserved, paid, and shipped",
+  superuser: {
+    login: "superuser",
+    email: "superuser@hundert.shop",
+    password: "superuser",
+    name: "Superuser",
+    blurb: "The only account that sees every reserved, paid, and shipped piece",
   },
   buyer: {
     email: "lea@hundert.shop",

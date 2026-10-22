@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import type { DatabaseSync } from "node:sqlite";
-import { BATCH_SIZE, MAX_LINE_QTY, RESET_MINUTES } from "./constants";
+import { BATCH_SIZE, DEMO_ACCOUNTS, MAX_LINE_QTY, RESET_MINUTES } from "./constants";
 import { ShopError } from "./errors";
 import {
   paymentDueLetter,
@@ -141,7 +141,9 @@ export function getUserByEmail(db: DatabaseSync, email: string) {
 }
 
 export function authenticate(db: DatabaseSync, email: string, password: string) {
-  const row = one(db, "SELECT * FROM users WHERE email = ?", email.trim().toLowerCase());
+  const key = email.trim().toLowerCase();
+  const lookup = key === DEMO_ACCOUNTS.superuser.login ? DEMO_ACCOUNTS.superuser.email : key;
+  const row = one(db, "SELECT * FROM users WHERE email = ?", lookup);
   if (!row) return null;
   if (!verifyPassword(password, str(row, "password_hash"))) return null;
   return mapUser(row);

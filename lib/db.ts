@@ -1,7 +1,7 @@
 import { mkdirSync } from "node:fs";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import { seedWorkshop } from "./seed";
+import { ensureSuperuser, seedWorkshop } from "./seed";
 import { one } from "./sql";
 
 export { many, one, run, withTransaction } from "./sql";
@@ -22,6 +22,7 @@ export function openDatabase(filename: string, options?: { seed?: boolean }) {
     const count = one(db, "SELECT COUNT(*) AS count FROM products");
     const products = typeof count?.count === "number" ? count.count : Number(count?.count ?? 0);
     if (products === 0) seedWorkshop(db);
+    else ensureSuperuser(db);
   }
   return db;
 }

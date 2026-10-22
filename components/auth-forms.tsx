@@ -28,8 +28,8 @@ export function LoginForm({ next }: { next: string }) {
           <Input
             id="email"
             name="email"
-            type="email"
-            autoComplete="email"
+            type="text"
+            autoComplete="username"
             required
             value={email}
             onChange={(event) => setEmail(event.target.value)}
@@ -64,23 +64,26 @@ export function LoginForm({ next }: { next: string }) {
       <aside className="rounded-xl border border-border bg-card p-4">
         <p className="text-xs tracking-[0.16em] text-muted-foreground uppercase">Try the workshop</p>
         <div className="mt-3 grid gap-3">
-          {[DEMO_ACCOUNTS.buyer, DEMO_ACCOUNTS.admin].map((account) => (
+          {[DEMO_ACCOUNTS.buyer, DEMO_ACCOUNTS.superuser].map((account) => {
+            const signInAs = "login" in account ? account.login : account.email;
+            return (
             <button
               key={account.email}
               type="button"
               className="rounded-lg border border-border px-3 py-3 text-left hover:border-primary"
               onClick={() => {
-                setEmail(account.email);
+                setEmail(signInAs);
                 setPassword(account.password);
               }}
             >
               <span className="block font-medium">{account.name}</span>
               <span className="mt-1 block text-sm text-muted-foreground">{account.blurb}</span>
               <span className="mt-2 block text-xs text-muted-foreground">
-                {account.email} · {account.password}
+                {signInAs} · {account.password}
               </span>
             </button>
-          ))}
+            );
+          })}
         </div>
       </aside>
     </div>

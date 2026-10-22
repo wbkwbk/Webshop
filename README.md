@@ -5,7 +5,7 @@ Hundert is a small Zürich workshop shop. A piece is made only after **100 of th
 1. You create an account with a postal address we can ship to, and you can ask for a password reset.
 2. You add pieces to a cart and **reserve** them. That is checkout step 1. Nothing is charged.
 3. When a product reaches 100 reserved pieces, everyone in that batch is asked to **pay**. That is checkout step 2. The workshop then produces the paid pieces.
-4. The workshop can, at any time, open a list of products and see how many pieces are **reserved**, **paid**, and **shipped**, then mark paid pieces as shipped.
+4. Only the superuser can open the full list of pieces and see how many are **reserved**, **paid**, and **shipped**, then mark paid pieces as shipped. Every other account sees only their own orders.
 
 Payments are simulated. The test card is `4242 4242 4242 4242`, with any future expiry and any three-digit CVC. Nothing is charged.
 
@@ -29,10 +29,10 @@ npm run lint
 
 ## Demo accounts
 
-| Who | Email | Password | What you see |
+| Who | Sign in | Password | What you see |
 | --- | --- | --- | --- |
-| Lea Keller | lea@hundert.shop | lea-hundert | A merino throw whose batch is full and waiting on her payment |
-| Ada Meier | ada@hundert.shop | atelier-admin | The workshop list: reserved, paid, and shipped |
+| Superuser | superuser | superuser | Every product, with reserved, paid, and shipped counts |
+| Lea Keller | lea@hundert.shop | lea-hundert | Only her own orders. A merino throw is waiting on her payment |
 
 The heavy linen apron is at 97 of 100. Reserving 3 closes that batch and asks every buyer to pay.
 

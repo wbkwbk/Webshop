@@ -2,7 +2,7 @@ import type { DatabaseSync } from "node:sqlite";
 import { DEMO_ACCOUNTS } from "./constants";
 import { hashPassword } from "./password";
 import { paymentDueLetter } from "./letters";
-import { run } from "./sql";
+import { one, run } from "./sql";
 
 type Person = {
   id: string;
@@ -18,11 +18,22 @@ type Person = {
 
 const PEOPLE: Person[] = [
   {
-    id: "usr_ada",
-    email: DEMO_ACCOUNTS.admin.email,
-    password: DEMO_ACCOUNTS.admin.password,
-    name: DEMO_ACCOUNTS.admin.name,
+    id: "usr_super",
+    email: DEMO_ACCOUNTS.superuser.email,
+    password: DEMO_ACCOUNTS.superuser.password,
+    name: DEMO_ACCOUNTS.superuser.name,
     role: "admin",
+    street: "Dienerstrasse",
+    house: "12",
+    postal: "8004",
+    city: "Zürich",
+  },
+  {
+    id: "usr_ada",
+    email: "ada@hundert.shop",
+    password: "atelier-admin",
+    name: "Ada Meier",
+    role: "customer",
     street: "Dienerstrasse",
     house: "12",
     postal: "8004",
@@ -348,4 +359,32 @@ export function seedWorkshop(db: DatabaseSync) {
       stamp,
     );
   }
+  ensureSuperuser(db);
+}
+
+export function ensureSuperuser(db: DatabaseSync) {
+  const account = DEMO_ACCOUNTS.superuser;
+  const passwordHash = hashPassword(account.password, "seed-usr_super");
+  const existing = one(db, "SELECT id FROM users WHERE email = ?", account.email);
+  if (!existing) {
+    run(
+      db,
+      `INSERT INTO users (
+        id, email, password_hash, name, street, house_number, postal_code, city, country, role, created_at
+      ) VALUES ('usr_super', ?, ?, ?, 'Dienerstrasse', '12', '8004', 'Zürich', 'CH', 'admin', ?)`,
+      account.email,
+      passwordHash,
+      account.name,
+      "2026-10-01T08:00:00.000Z",
+    );
+  } else {
+    run(
+      db,
+      "UPDATE users SET role = 'admin', password_hash = ?, name = ? WHERE email = ?",
+      passwordHash,
+      account.name,
+      account.email,
+    );
+  }
+  run(db, "UPDATE users SET role = 'customer' WHERE email != ? AND role = 'admin'", account.email);
 }
