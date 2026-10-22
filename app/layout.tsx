@@ -21,7 +21,7 @@ export const metadata: Metadata = {
     template: "%s · Hundert",
   },
   description:
-    "A Zürich workshop that makes a piece only after one hundred people reserve it. Reserve first, pay when the batch is full, then we produce and ship it.",
+    "The AFM Saucer Mod. Reserve as many as you need. Production starts once 100 are reserved, and you can keep reserving after that.",
 };
 
 export const instant = false;
@@ -32,7 +32,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="flex min-h-full flex-col font-sans">
         <div className="h-1 bg-primary" />
         <SiteHeader />
-        <main id="content" className="flex-1">
+        <main id="content" className="min-w-0 flex-1">
           {children}
         </main>
         <SiteFooter />

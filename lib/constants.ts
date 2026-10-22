@@ -1,5 +1,5 @@
-export const BATCH_SIZE = 100;
-export const MAX_LINE_QTY = 100;
+export const PRODUCTION_AT = 100;
+export const BATCH_SIZE = PRODUCTION_AT;
 export const SESSION_DAYS = 14;
 export const RESET_MINUTES = 60;
 
@@ -15,6 +15,6 @@ export const DEMO_ACCOUNTS = {
     email: "lea@hundert.shop",
     password: "lea-hundert",
     name: "Lea Keller",
-    blurb: "A merino throw is waiting on her payment",
+    blurb: "A buyer. She only sees her own orders.",
   },
 } as const;

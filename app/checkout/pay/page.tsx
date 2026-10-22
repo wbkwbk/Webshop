@@ -27,8 +27,8 @@ async function Pay() {
     <Frame>
       <PageHeader kicker="Checkout · step 2 of 2" title="Pay, then we produce it">
         <p>
-          Payment is open only for reservations in a batch that has reached 100 pieces. This checkout is simulated:
-          use card 4242 4242 4242 4242, any future expiry, and any three-digit CVC. Nothing is charged.
+          Payment is open once at least 100 pieces are reserved. This checkout is simulated: use card 4242 4242 4242
+          4242, any future expiry, and any three-digit CVC. Nothing is charged.
         </p>
       </PageHeader>
       <CheckoutStepper step={2} canPay={lines.length > 0} />
@@ -36,8 +36,7 @@ async function Pay() {
         <div className="max-w-xl rounded-xl border border-dashed border-border px-5 py-10">
           <p className="font-serif text-2xl">Nothing is waiting on payment.</p>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">
-            Reservations stay unpaid until 100 pieces of the same product are reserved. The heavy linen apron is close.
-            Lea Keller already has a merino throw ready to pay.
+            Reservations stay unpaid until 100 AFM Saucer Mods are reserved. After that, a new reservation can be paid straight away.
           </p>
           <Link href="/orders" className={cn(buttonVariants({ size: "lg" }), "mt-5 h-11 px-5")}>
             See your orders
@@ -51,7 +50,6 @@ async function Pay() {
               productName: line.productName,
               quantity: line.quantity,
               unitPriceCents: line.unitPriceCents,
-              batchSequence: line.batchSequence,
             }))}
           />
         </div>

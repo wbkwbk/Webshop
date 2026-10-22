@@ -2,13 +2,16 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { describeAllocation } from "../lib/batches";
 import { openDatabase } from "../lib/db";
+import { ensureCatalog } from "../lib/seed";
 import { run } from "../lib/sql";
 import {
   addToCart,
   authenticate,
   getCart,
+  groupOrderedItems,
   listLetters,
   listNotices,
+  listOrderedItems,
   listOrders,
   listPaymentDue,
   listProducts,
@@ -146,25 +149,52 @@ test("a single order of 100 notifies only that buyer", () => {
   assert.equal(listNotices(db, other.id).some((notice) => notice.href === "/checkout/pay"), false);
 });
 
-test("quantity that crosses 100 splits into a payable batch and a new reservation", () => {
+test("quantity past 100 stays one reservation and opens payment for everyone", () => {
+  const db = memory();
+  addProduct(db);
+  const first = createUser(db, "first@example.com", { name: "Ada Berg" });
+  const second = createUser(db, "second@example.com", { name: "Noa Frei" });
+  reserveForUser(db, first.id, [{ productId: "prd_test", quantity: 40 }]);
+  const result = reserveForUser(db, second.id, [{ productId: "prd_test", quantity: 100 }]);
+  assert.equal(result.openedProduction, true);
+  assert.equal(listOrders(db, second.id)[0]?.lines.length, 1);
+  assert.equal(listPaymentDue(db, second.id)[0]?.quantity, 100);
+  assert.equal(listPaymentDue(db, first.id)[0]?.quantity, 40);
+  const product = listProducts(db)[0];
+  assert.equal(product?.openFilled, 140);
+  assert.equal(product?.paymentDueQty, 140);
+  assert.equal(product?.reservedQty, 140);
+  payReservations(db, second.id, listPaymentDue(db, second.id).map((line) => line.id), card);
+  assert.equal(listProducts(db)[0]?.paidQty, 100);
+  assert.equal(listProducts(db)[0]?.reservedQty, 40);
+  assert.equal(listProducts(db)[0]?.openFilled, 140);
+});
+
+test("a single order of 250 is one payable line", () => {
+  const db = memory();
+  addProduct(db);
+  const lea = createUser(db, "lea@example.com");
+  const other = createUser(db, "watcher@example.com");
+  const result = reserveForUser(db, lea.id, [{ productId: "prd_test", quantity: 250 }]);
+  assert.equal(result.openedProduction, true);
+  assert.equal(listOrders(db, lea.id)[0]?.lines.length, 1);
+  assert.equal(listPaymentDue(db, lea.id)[0]?.quantity, 250);
+  assert.equal(listNotices(db, other.id).some((notice) => notice.href === "/checkout/pay"), false);
+});
+
+test("an order after production has started can be paid immediately", () => {
   const db = memory();
   addProduct(db);
   const first = createUser(db, "first@example.com");
   const second = createUser(db, "second@example.com");
-  reserveForUser(db, first.id, [{ productId: "prd_test", quantity: 40 }]);
-  reserveForUser(db, second.id, [{ productId: "prd_test", quantity: 100 }]);
-  const due = listPaymentDue(db, second.id);
-  assert.equal(due.length, 1);
-  assert.equal(due[0]?.quantity, 60);
-  const orders = listPaymentDue(db, second.id);
-  assert.equal(orders[0]?.batchStatus, "closed");
-  const product = listProducts(db)[0];
-  assert.equal(product?.openFilled, 40);
-  assert.equal(product?.paymentDueQty, 100);
-  assert.equal(product?.reservedQty, 140);
-  payReservations(db, second.id, due.map((line) => line.id), card);
-  assert.equal(listProducts(db)[0]?.paidQty, 60);
-  assert.equal(listProducts(db)[0]?.reservedQty, 80);
+  reserveForUser(db, first.id, [{ productId: "prd_test", quantity: 100 }]);
+  const before = listNotices(db, first.id).filter((notice) => notice.href === "/checkout/pay").length;
+  const result = reserveForUser(db, second.id, [{ productId: "prd_test", quantity: 5 }]);
+  assert.equal(result.openedProduction, false);
+  assert.equal(result.payable, true);
+  assert.equal(listPaymentDue(db, second.id)[0]?.quantity, 5);
+  assert.equal(listNotices(db, second.id).filter((notice) => notice.href === "/checkout/pay").length, 1);
+  assert.equal(listNotices(db, first.id).filter((notice) => notice.href === "/checkout/pay").length, before);
 });
 
 test("reservation stores the postal address and refuses an invalid one", () => {
@@ -175,16 +205,19 @@ test("reservation stores the postal address and refuses an invalid one", () => {
   assert.throws(() => reserveForUser(db, user.id, [{ productId: "prd_test", quantity: 1 }]), /postal address/);
 });
 
-test("cart checkout clears the cart and caps a line at 100", () => {
+test("cart checkout keeps any quantity and clears the cart", () => {
   const db = memory();
   addProduct(db);
   const user = createUser(db, "cart@example.com");
   addToCart(db, user.id, "prd_test", 30);
   addToCart(db, user.id, "prd_test", 80);
-  assert.equal(getCart(db, user.id)[0]?.quantity, 100);
+  assert.equal(getCart(db, user.id)[0]?.quantity, 110);
+  addToCart(db, user.id, "prd_test", 390);
+  assert.equal(getCart(db, user.id)[0]?.quantity, 500);
   const result = reserveCart(db, user.id);
-  assert.equal(result.closedBatchIds.length, 1);
+  assert.equal(result.payable, true);
   assert.equal(getCart(db, user.id).length, 0);
+  assert.equal(listPaymentDue(db, user.id)[0]?.quantity, 500);
   setCartQuantity(db, user.id, "prd_test", 0);
   assert.equal(getCart(db, user.id).length, 0);
 });
@@ -226,27 +259,64 @@ test("registration rejects a duplicate email", () => {
   assert.throws(() => createUser(db, "same@example.com"), /already exists/);
 });
 
-test("the seeded workshop matches the batch story", () => {
+test("the shop starts with the AFM Saucer Mod and zero reserved", () => {
   const db = openDatabase(":memory:", { seed: true });
   const products = listProducts(db);
-  const bySlug = Object.fromEntries(products.map((product) => [product.slug, product]));
-  assert.equal(bySlug["heavy-linen-apron"]?.openFilled, 97);
-  assert.equal(bySlug["heavy-linen-apron"]?.reservedQty, 97);
-  assert.equal(bySlug["merino-throw"]?.paymentDueQty, 22);
-  assert.equal(bySlug["merino-throw"]?.paidQty, 70);
-  assert.equal(bySlug["merino-throw"]?.shippedQty, 8);
-  assert.equal(bySlug["merino-throw"]?.reservedQty, 34);
-  assert.equal(bySlug["enamel-kettle"]?.paidQty, 60);
-  assert.equal(bySlug["enamel-kettle"]?.paymentDueQty, 40);
-  assert.equal(bySlug["oak-serving-board"]?.shippedQty, 100);
+  assert.equal(products.length, 1);
+  assert.equal(products[0]?.slug, "afm-saucer-mod");
+  assert.equal(products[0]?.name, "AFM Saucer Mod");
+  assert.equal(products[0]?.openFilled, 0);
+  assert.equal(products[0]?.reservedQty, 0);
+  assert.equal(products[0]?.priceCents, 18000);
   const lea = authenticate(db, "lea@hundert.shop", "lea-hundert");
+  assert.equal(lea?.role, "customer");
   assert.ok(lea);
-  assert.equal(listPaymentDue(db, lea.id).length, 1);
-  assert.equal(listPaymentDue(db, lea.id)[0]?.productName, "Merino throw");
-  const ada = authenticate(db, "ada@hundert.shop", "atelier-admin");
-  assert.equal(ada?.role, "customer");
+  assert.equal(listPaymentDue(db, lea.id).length, 0);
+  assert.equal(listOrders(db, lea.id).length, 0);
   const superuser = authenticate(db, "superuser", "superuser");
   assert.equal(superuser?.role, "admin");
   assert.equal(authenticate(db, "superuser@hundert.shop", "superuser")?.id, superuser?.id);
   assert.equal(authenticate(db, "lea@hundert.shop", "superuser"), null);
+});
+
+test("an older catalog is replaced by the saucer and keeps user accounts", () => {
+  const db = memory();
+  addProduct(db, "prd_apron", "Heavy linen apron");
+  const user = createUser(db, "kept@example.com");
+  reserveForUser(db, user.id, [{ productId: "prd_apron", quantity: 3 }]);
+  ensureCatalog(db);
+  const products = listProducts(db);
+  assert.equal(products.length, 1);
+  assert.equal(products[0]?.name, "AFM Saucer Mod");
+  assert.equal(products[0]?.openFilled, 0);
+  assert.equal(listOrders(db, user.id).length, 0);
+  assert.equal(authenticate(db, "kept@example.com", "password-1")?.id, user.id);
+});
+
+test("ordered items can be sorted and grouped by user, state, and date", () => {
+  const db = memory();
+  addProduct(db);
+  const ada = createUser(db, "ada@example.com", { name: "Ada Berg" });
+  const noa = createUser(db, "noa@example.com", { name: "Noa Frei" });
+  reserveForUser(db, noa.id, [{ productId: "prd_test", quantity: 40 }]);
+  reserveForUser(db, ada.id, [{ productId: "prd_test", quantity: 70 }]);
+  const adaLine = listPaymentDue(db, ada.id)[0];
+  const noaLine = listPaymentDue(db, noa.id)[0];
+  assert.ok(adaLine);
+  assert.ok(noaLine);
+  run(db, "UPDATE reservations SET created_at = ? WHERE id = ?", "2026-10-02T10:00:00.000Z", noaLine.id);
+  run(db, "UPDATE reservations SET created_at = ? WHERE id = ?", "2026-10-03T10:00:00.000Z", adaLine.id);
+  payReservations(db, ada.id, [adaLine.id], card);
+  markShipped(db, adaLine.id);
+
+  const lines = listOrderedItems(db);
+  assert.equal(lines.length, 2);
+  const byUser = groupOrderedItems(lines, "user", "user", "asc").map((group) => group.label);
+  assert.deepEqual(byUser, ["Ada Berg · ada@example.com", "Noa Frei · noa@example.com"]);
+  const byState = groupOrderedItems(lines, "state", "state", "asc").map((group) => group.label);
+  assert.deepEqual(byState, ["Reserve", "Ship"]);
+  const byDate = groupOrderedItems(lines, "date", "date", "desc").map((group) => group.key);
+  assert.deepEqual(byDate, ["2026-10-03", "2026-10-02"]);
+  const newestFirst = groupOrderedItems(lines, "none", "date", "desc").flatMap((group) => group.lines.map((line) => line.email));
+  assert.deepEqual(newestFirst, ["ada@example.com", "noa@example.com"]);
 });

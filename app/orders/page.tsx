@@ -29,8 +29,8 @@ async function Orders({ searchParams }: { searchParams: SearchParams }) {
 
   return (
     <Frame>
-      <PageHeader kicker="Your batches" title="Your orders">
-        <p>This list is only yours. Reserved means we are holding your pieces. Paid means production can start. Shipped means they have left for you.</p>
+      <PageHeader kicker="Your account" title="Your orders">
+        <p>This list is only yours. Reserved means we are holding your pieces. Paid means production can include them. Shipped means they have left for you.</p>
       </PageHeader>
       {paid ? (
         <Banner tone="good">
@@ -62,19 +62,19 @@ async function Orders({ searchParams }: { searchParams: SearchParams }) {
                         {line.productName} · {pieces(line.quantity)}
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        Batch {line.batchSequence}
-                        {line.status === "reserved" && line.batchStatus === "closed" ? " · payment requested" : ""}
-                        {line.status === "reserved" && line.batchStatus === "open" ? " · waiting for 100" : ""}
-                        {line.status === "paid" ? " · in production" : ""}
+                        {line.status === "reserved" && line.paymentOpen ? "Payment is open" : ""}
+                        {line.status === "reserved" && !line.paymentOpen ? "Waiting until 100 are reserved" : ""}
+                        {line.status === "paid" ? "In production" : ""}
+                        {line.status === "shipped" ? "On the way" : ""}
                       </p>
                     </div>
                     <StatusBadge status={line.status} />
                   </li>
                 ))}
               </ul>
-              {order.lines.some((line) => line.status === "reserved" && line.batchStatus === "closed") ? (
+              {order.lines.some((line) => line.status === "reserved" && line.paymentOpen) ? (
                 <Link href="/checkout/pay" className={cn(buttonVariants({ size: "lg" }), "mt-4 h-11 px-5")}>
-                  Pay this batch
+                  Pay these pieces
                 </Link>
               ) : null}
             </li>

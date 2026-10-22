@@ -1,7 +1,7 @@
 import { mkdirSync } from "node:fs";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
-import { ensureSuperuser, seedWorkshop } from "./seed";
+import { ensureCatalog, ensureSuperuser, seedWorkshop } from "./seed";
 import { one } from "./sql";
 
 export { many, one, run, withTransaction } from "./sql";
@@ -22,8 +22,12 @@ export function openDatabase(filename: string, options?: { seed?: boolean }) {
     const count = one(db, "SELECT COUNT(*) AS count FROM products");
     const products = typeof count?.count === "number" ? count.count : Number(count?.count ?? 0);
     if (products === 0) seedWorkshop(db);
-    else ensureSuperuser(db);
+    else {
+      ensureSuperuser(db);
+      ensureCatalog(db);
+    }
   }
+  relaxCartQuantity(db);
   return db;
 }
 
@@ -33,6 +37,26 @@ export function getDb() {
     globalForDb.hundertDb = openDatabase(filename, { seed: true });
   }
   return globalForDb.hundertDb;
+}
+
+function relaxCartQuantity(db: DatabaseSync) {
+  const row = one(db, "SELECT sql AS sql FROM sqlite_master WHERE type = 'table' AND name = 'cart_items'");
+  const sql = typeof row?.sql === "string" ? row.sql : "";
+  if (!sql.includes("100")) return;
+  db.exec("PRAGMA foreign_keys = OFF;");
+  db.exec(`
+    CREATE TABLE cart_items_new (
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      product_id TEXT NOT NULL REFERENCES products(id),
+      quantity INTEGER NOT NULL CHECK (quantity > 0),
+      PRIMARY KEY (user_id, product_id)
+    );
+    INSERT INTO cart_items_new (user_id, product_id, quantity)
+      SELECT user_id, product_id, quantity FROM cart_items;
+    DROP TABLE cart_items;
+    ALTER TABLE cart_items_new RENAME TO cart_items;
+  `);
+  db.exec("PRAGMA foreign_keys = ON;");
 }
 
 function migrate(db: DatabaseSync) {
@@ -79,7 +103,7 @@ function migrate(db: DatabaseSync) {
     CREATE TABLE IF NOT EXISTS cart_items (
       user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       product_id TEXT NOT NULL REFERENCES products(id),
-      quantity INTEGER NOT NULL CHECK (quantity > 0 AND quantity <= 100),
+      quantity INTEGER NOT NULL CHECK (quantity > 0),
       PRIMARY KEY (user_id, product_id)
     );
 

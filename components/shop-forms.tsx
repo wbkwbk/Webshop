@@ -31,13 +31,12 @@ export function QuantityPicker({
     <form action={addToCartAction} className="grid gap-3">
       <input type="hidden" name="productId" value={productId} />
       <input type="hidden" name="returnTo" value={returnTo} />
-      <Field label="Quantity" name="quantity" hint="Up to 100 pieces in one reservation.">
+      <Field label="Quantity" name="quantity" hint="As many as you need. The quantity is not limited.">
         <Input
           id="quantity"
           name="quantity"
           type="number"
           min={1}
-          max={100}
           value={quantity}
           onChange={(event) => setQuantity(Number(event.target.value))}
           className="h-10 w-28 bg-background"
@@ -79,7 +78,6 @@ export function PayForm({
     productName: string;
     quantity: number;
     unitPriceCents: number;
-    batchSequence: number;
   }[];
 }) {
   const [state, action] = useActionState(payAction, emptyState);
@@ -113,9 +111,7 @@ export function PayForm({
               className="mt-1 accent-[#8e3b2a]"
             />
             <span>
-              <span className="block font-medium">
-                {line.productName} · batch {line.batchSequence}
-              </span>
+              <span className="block font-medium">{line.productName}</span>
               <span className="text-sm text-muted-foreground">
                 {line.quantity} × {formatChf(line.unitPriceCents)}
               </span>

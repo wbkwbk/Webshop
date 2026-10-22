@@ -15,7 +15,7 @@ export function SiteHeader() {
         <Link href="/" className="block shrink-0">
           <span className="font-serif text-2xl tracking-tight">Hundert</span>
           <span className="block text-[0.65rem] tracking-[0.18em] text-muted-foreground uppercase">
-            Zürich batch atelier
+            Zürich atelier
           </span>
         </Link>
         <Suspense fallback={<p className="text-sm text-muted-foreground">Shop</p>}>
@@ -78,7 +78,7 @@ function navLinks(
       { href: "/account", label: user.name.split(" ")[0] ?? "Account" },
     );
     if (due > 0) links.push({ href: "/checkout/pay", label: "Pay" });
-    if (user.role === "admin") links.push({ href: "/admin", label: "Workshop" });
+    if (user.role === "admin") links.push({ href: "/admin", label: "Ordered items" });
   } else {
     links.push({ href: "/register", label: "Register" });
   }

@@ -35,7 +35,7 @@ async function Cart() {
         <div className="rounded-xl border border-dashed border-border px-5 py-10">
           <p className="font-serif text-2xl">The cart is empty.</p>
           <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">
-            The linen apron is three pieces away from closing its batch, if you want to see payment open.
+            The AFM Saucer Mod starts at zero reserved. Production starts once 100 are reserved.
           </p>
           <Link href="/" className={cn(buttonVariants({ size: "lg" }), "mt-5 h-11 px-5")}>
             Browse the workshop
@@ -66,7 +66,6 @@ async function Cart() {
                         name="quantity"
                         type="number"
                         min={1}
-                        max={100}
                         defaultValue={line.quantity}
                         className="h-10 w-24 rounded-lg border border-input bg-background px-2"
                       />
@@ -88,7 +87,7 @@ async function Cart() {
             ))}
           </ul>
           <aside className="h-fit rounded-xl border border-border bg-card p-4">
-            <p className="text-sm text-muted-foreground">Reserved value, due only after a batch fills</p>
+            <p className="text-sm text-muted-foreground">Reserved value, due once 100 pieces are reserved</p>
             <p className="mt-1 font-serif text-3xl tabular-nums">{formatChf(reservedValue)}</p>
             <Link href="/checkout" className={cn(buttonVariants({ size: "lg" }), "mt-4 h-11 w-full px-5")}>
               Continue to reservation

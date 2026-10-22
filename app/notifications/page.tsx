@@ -27,7 +27,7 @@ async function Notices() {
     <Frame>
       <PageHeader kicker="In the workshop" title="Notices">
         <p>
-          When a batch reaches 100 pieces, everyone who reserved it gets a notice to pay. The same letter is in the{" "}
+          When 100 pieces are reserved, everyone who reserved gets a notice to pay. The same letter is in the{" "}
           <Link href="/post" className="text-foreground underline-offset-4 hover:underline">
             post office
           </Link>
@@ -38,7 +38,7 @@ async function Notices() {
         <div className="rounded-xl border border-dashed border-border px-5 py-10">
           <p className="font-serif text-2xl">No notices yet.</p>
           <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">
-            Reserve a piece. The request to pay appears here once 100 of that product are in.
+            Reserve the AFM Saucer Mod. The request to pay appears here once 100 are reserved.
           </p>
         </div>
       ) : (

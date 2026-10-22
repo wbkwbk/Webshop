@@ -1,7 +1,8 @@
 import { randomBytes } from "node:crypto";
 import type { DatabaseSync } from "node:sqlite";
-import { BATCH_SIZE, DEMO_ACCOUNTS, MAX_LINE_QTY, RESET_MINUTES } from "./constants";
+import { DEMO_ACCOUNTS, PRODUCTION_AT, RESET_MINUTES } from "./constants";
 import { ShopError } from "./errors";
+import { formatDay, zurichDayKey } from "./format";
 import {
   paymentDueLetter,
   paymentReceivedLetter,
@@ -75,6 +76,7 @@ function mapReservation(row: Row): ReservationLine {
     batchId: str(row, "batch_id"),
     batchSequence: int(row, "sequence"),
     batchStatus: str(row, "batch_status") === "closed" ? "closed" : "open",
+    paymentOpen: int(row, "reserved_total") >= PRODUCTION_AT,
     createdAt: str(row, "created_at"),
     paidAt: strOrNull(row, "paid_at"),
     shippedAt: strOrNull(row, "shipped_at"),
@@ -88,6 +90,7 @@ const RESERVATION_SELECT = `
          r.ship_name, r.ship_street, r.ship_house_number, r.ship_postal_code, r.ship_city, r.ship_country,
          p.slug, p.name AS product_name,
          b.sequence, b.status AS batch_status,
+         (SELECT COALESCE(SUM(x.quantity), 0) FROM reservations x WHERE x.product_id = r.product_id) AS reserved_total,
          (SELECT u.email FROM users u WHERE u.id = r.user_id) AS email
   FROM reservations r
   JOIN products p ON p.id = r.product_id
@@ -98,10 +101,10 @@ export function listProducts(db: DatabaseSync): ProductStat[] {
   return many(
     db,
     `SELECT p.id, p.slug, p.name, p.summary, p.description, p.price_cents,
-            COALESCE((SELECT b.filled_qty FROM batches b WHERE b.product_id = p.id AND b.status = 'open' LIMIT 1), 0) AS open_filled,
-            CASE WHEN EXISTS (SELECT 1 FROM batches b WHERE b.product_id = p.id AND b.status = 'open') THEN 1 ELSE 0 END AS has_open,
+            COALESCE((SELECT SUM(r.quantity) FROM reservations r WHERE r.product_id = p.id), 0) AS open_filled,
+            1 AS has_open,
             COALESCE((SELECT SUM(r.quantity) FROM reservations r WHERE r.product_id = p.id AND r.status = 'reserved'), 0) AS reserved_qty,
-            COALESCE((SELECT SUM(r.quantity) FROM reservations r JOIN batches b ON b.id = r.batch_id WHERE r.product_id = p.id AND r.status = 'reserved' AND b.status = 'closed'), 0) AS payment_due_qty,
+            COALESCE((SELECT SUM(r.quantity) FROM reservations r WHERE r.product_id = p.id AND r.status = 'reserved' AND (SELECT COALESCE(SUM(r2.quantity), 0) FROM reservations r2 WHERE r2.product_id = p.id) >= ${PRODUCTION_AT}), 0) AS payment_due_qty,
             COALESCE((SELECT SUM(r.quantity) FROM reservations r WHERE r.product_id = p.id AND r.status = 'paid'), 0) AS paid_qty,
             COALESCE((SELECT SUM(r.quantity) FROM reservations r WHERE r.product_id = p.id AND r.status = 'shipped'), 0) AS shipped_qty
      FROM products p
@@ -258,7 +261,7 @@ export function getCart(db: DatabaseSync, userId: string): CartLine[] {
   return many(
     db,
     `SELECT c.product_id, c.quantity, p.slug, p.name, p.price_cents,
-            COALESCE((SELECT b.filled_qty FROM batches b WHERE b.product_id = p.id AND b.status = 'open' LIMIT 1), 0) AS open_filled
+            COALESCE((SELECT SUM(r.quantity) FROM reservations r WHERE r.product_id = p.id), 0) AS open_filled
      FROM cart_items c
      JOIN products p ON p.id = c.product_id
      WHERE c.user_id = ?
@@ -280,8 +283,8 @@ export function cartCount(db: DatabaseSync, userId: string) {
 }
 
 export function addToCart(db: DatabaseSync, userId: string, productId: string, quantity: number) {
-  if (!Number.isInteger(quantity) || quantity < 1 || quantity > MAX_LINE_QTY) {
-    throw new ShopError(`Choose between 1 and ${MAX_LINE_QTY} pieces.`);
+  if (!Number.isInteger(quantity) || quantity < 1) {
+    throw new ShopError("Choose at least 1 piece. The quantity is not limited.");
   }
   const product = one(db, "SELECT id FROM products WHERE id = ?", productId);
   if (!product) throw new ShopError("That piece is not in the workshop.");
@@ -291,7 +294,7 @@ export function addToCart(db: DatabaseSync, userId: string, productId: string, q
     userId,
     productId,
   );
-  const next = Math.min(MAX_LINE_QTY, (existing ? int(existing, "quantity") : 0) + quantity);
+  const next = (existing ? int(existing, "quantity") : 0) + quantity;
   run(
     db,
     `INSERT INTO cart_items (user_id, product_id, quantity) VALUES (?, ?, ?)
@@ -307,11 +310,10 @@ export function setCartQuantity(db: DatabaseSync, userId: string, productId: str
     run(db, "DELETE FROM cart_items WHERE user_id = ? AND product_id = ?", userId, productId);
     return;
   }
-  const capped = Math.min(MAX_LINE_QTY, quantity);
   run(
     db,
     "UPDATE cart_items SET quantity = ? WHERE user_id = ? AND product_id = ?",
-    capped,
+    quantity,
     userId,
     productId,
   );
@@ -338,8 +340,8 @@ export function reserveCart(db: DatabaseSync, userId: string) {
 function allocate(db: DatabaseSync, userId: string, lines: LineRequest[]) {
   if (lines.length === 0) throw new ShopError("Your cart is empty.");
   for (const line of lines) {
-    if (!Number.isInteger(line.quantity) || line.quantity < 1 || line.quantity > MAX_LINE_QTY) {
-      throw new ShopError(`You can reserve between 1 and ${MAX_LINE_QTY} pieces of each product at a time.`);
+    if (!Number.isInteger(line.quantity) || line.quantity < 1) {
+      throw new ShopError("Reserve at least 1 piece. The quantity is not limited.");
     }
   }
   const user = getUserById(db, userId);
@@ -353,91 +355,107 @@ function allocate(db: DatabaseSync, userId: string, lines: LineRequest[]) {
   const now = new Date().toISOString();
   run(db, "INSERT INTO orders (id, user_id, created_at) VALUES (?, ?, ?)", orderId, userId, now);
   const closedBatchIds: string[] = [];
+  let openedProduction = false;
+  let payable = false;
+  const before = new Map(lines.map((line) => [line.productId, reservedCount(db, line.productId)]));
 
   for (const line of lines) {
     const product = one(db, "SELECT id, price_cents FROM products WHERE id = ?", line.productId);
     if (!product) throw new ShopError("A piece in your cart is no longer in the workshop.");
-    let remaining = line.quantity;
-    while (remaining > 0) {
-      const open = one(
-        db,
-        "SELECT id, target_qty, filled_qty FROM batches WHERE product_id = ? AND status = 'open'",
-        line.productId,
-      );
-      let batchId: string;
-      let filledQty: number;
-      let targetQty: number;
-      if (!open) {
-        const max = one(
-          db,
-          "SELECT COALESCE(MAX(sequence), 0) AS sequence FROM batches WHERE product_id = ?",
-          line.productId,
-        );
-        batchId = crypto.randomUUID();
-        filledQty = 0;
-        targetQty = BATCH_SIZE;
-        run(
-          db,
-          `INSERT INTO batches (id, product_id, sequence, target_qty, filled_qty, status, closed_at)
-           VALUES (?, ?, ?, ?, 0, 'open', NULL)`,
-          batchId,
-          line.productId,
-          (max ? int(max, "sequence") : 0) + 1,
-          BATCH_SIZE,
-        );
+    const batchId = ensurePool(db, line.productId);
+    const value = address.value;
+    run(
+      db,
+      `INSERT INTO reservations (
+        id, order_id, user_id, product_id, batch_id, quantity, unit_price_cents, status,
+        ship_name, ship_street, ship_house_number, ship_postal_code, ship_city, ship_country,
+        created_at, paid_at, shipped_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, 'reserved', ?, ?, ?, ?, ?, ?, ?, NULL, NULL)`,
+      crypto.randomUUID(),
+      orderId,
+      userId,
+      line.productId,
+      batchId,
+      line.quantity,
+      int(product, "price_cents"),
+      value.name,
+      value.street,
+      value.houseNumber,
+      value.postalCode,
+      value.city,
+      value.country,
+      now,
+    );
+    run(
+      db,
+      "UPDATE batches SET filled_qty = filled_qty + ? WHERE id = ?",
+      line.quantity,
+      batchId,
+    );
+    const previous = before.get(line.productId) ?? 0;
+    const total = reservedCount(db, line.productId);
+    if (total >= PRODUCTION_AT) {
+      payable = true;
+      closedBatchIds.push(batchId);
+      if (previous < PRODUCTION_AT) {
+        openedProduction = true;
+        notifyProductionStarted(db, line.productId, now);
       } else {
-        batchId = str(open, "id");
-        filledQty = int(open, "filled_qty");
-        targetQty = int(open, "target_qty");
+        notifyPayer(db, userId, orderId, now);
       }
-      const space = targetQty - filledQty;
-      if (space <= 0) throw new ShopError("The open batch is already full.");
-      const take = Math.min(space, remaining);
-      const value = address.value;
-      run(
-        db,
-        `INSERT INTO reservations (
-          id, order_id, user_id, product_id, batch_id, quantity, unit_price_cents, status,
-          ship_name, ship_street, ship_house_number, ship_postal_code, ship_city, ship_country,
-          created_at, paid_at, shipped_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, 'reserved', ?, ?, ?, ?, ?, ?, ?, NULL, NULL)`,
-        crypto.randomUUID(),
-        orderId,
-        userId,
-        line.productId,
-        batchId,
-        take,
-        int(product, "price_cents"),
-        value.name,
-        value.street,
-        value.houseNumber,
-        value.postalCode,
-        value.city,
-        value.country,
-        now,
-      );
-      const filled = filledQty + take;
-      if (filled >= targetQty) {
-        run(
-          db,
-          "UPDATE batches SET filled_qty = ?, status = 'closed', closed_at = ? WHERE id = ?",
-          filled,
-          now,
-          batchId,
-        );
-        closedBatchIds.push(batchId);
-      } else {
-        run(db, "UPDATE batches SET filled_qty = ? WHERE id = ?", filled, batchId);
-      }
-      remaining -= take;
     }
   }
 
-  for (const batchId of closedBatchIds) notifyBatchClosed(db, batchId, now);
-  return { orderId, closedBatchIds };
+  return { orderId, closedBatchIds, openedProduction, payable };
 }
 
-function notifyBatchClosed(db: DatabaseSync, batchId: string, now: string) {
+function reservedCount(db: DatabaseSync, productId: string) {
+  const row = one(
+    db,
+    "SELECT COALESCE(SUM(quantity), 0) AS quantity FROM reservations WHERE product_id = ?",
+    productId,
+  );
+  return row ? int(row, "quantity") : 0;
+}
+
+function ensurePool(db: DatabaseSync, productId: string) {
+  const open = one(
+    db,
+    "SELECT id FROM batches WHERE product_id = ? AND status = 'open'",
+    productId,
+  );
+  if (open) return str(open, "id");
+  const max = one(
+    db,
+    "SELECT COALESCE(MAX(sequence), 0) AS sequence FROM batches WHERE product_id = ?",
+    productId,
+  );
+  const batchId = crypto.randomUUID();
+  run(
+    db,
+    `INSERT INTO batches (id, product_id, sequence, target_qty, filled_qty, status, closed_at)
+     VALUES (?, ?, ?, ?, 0, 'open', NULL)`,
+    batchId,
+    productId,
+    (max ? int(max, "sequence") : 0) + 1,
+    1_000_000_000,
+  );
+  return batchId;
+}
+
+function productionOpen(db: DatabaseSync, productId: string) {
+  return reservedCount(db, productId) >= PRODUCTION_AT;
+}
+
+function notifyProductionStarted(db: DatabaseSync, productId: string, now: string) {
+  notifyHolders(db, now, "r.product_id = ? AND r.status = 'reserved'", [productId]);
+}
+
+function notifyPayer(db: DatabaseSync, userId: string, orderId: string, now: string) {
+  notifyHolders(db, now, "r.user_id = ? AND r.order_id = ? AND r.status = 'reserved'", [userId, orderId]);
+}
+
+function notifyHolders(db: DatabaseSync, now: string, where: string, params: string[]) {
   const holders = many(
     db,
     `SELECT u.id AS user_id, u.email, u.name,
@@ -448,9 +466,9 @@ function notifyBatchClosed(db: DatabaseSync, batchId: string, now: string) {
      JOIN users u ON u.id = r.user_id
      JOIN products p ON p.id = r.product_id
      JOIN batches b ON b.id = r.batch_id
-     WHERE r.batch_id = ?
-     GROUP BY u.id`,
-    batchId,
+     WHERE ${where}
+     GROUP BY u.id, p.id`,
+    ...params,
   );
   for (const row of holders) {
     const letter = paymentDueLetter({
@@ -468,8 +486,9 @@ export function listPaymentDue(db: DatabaseSync, userId: string) {
   return many(
     db,
     `${RESERVATION_SELECT}
-     WHERE r.user_id = ? AND r.status = 'reserved' AND b.status = 'closed'
-     ORDER BY b.closed_at, p.sort_order`,
+     WHERE r.user_id = ? AND r.status = 'reserved'
+       AND (SELECT COALESCE(SUM(r2.quantity), 0) FROM reservations r2 WHERE r2.product_id = r.product_id) >= ${PRODUCTION_AT}
+     ORDER BY r.created_at, p.sort_order`,
     userId,
   ).map(mapReservation);
 }
@@ -493,8 +512,8 @@ export function payReservations(
       if (!row) throw new ShopError("That reservation is not on your account.");
       const line = mapReservation(row);
       if (line.status !== "reserved") throw new ShopError("That reservation is already paid or shipped.");
-      if (line.batchStatus !== "closed") {
-        throw new ShopError("Payment opens when 100 pieces of this product are reserved.");
+      if (!productionOpen(db, line.productId)) {
+        throw new ShopError("Payment opens when 100 pieces are reserved. You can keep reserving until then.");
       }
       lines.push(line);
     }
@@ -539,6 +558,90 @@ export function getOrder(db: DatabaseSync, userId: string, orderId: string) {
   return listOrders(db, userId).find((order) => order.id === orderId) ?? null;
 }
 
+export type OrderSort = "user" | "state" | "date";
+export type OrderGroupBy = "none" | "user" | "state" | "date";
+
+const STATE_RANK: Record<ReservationStatus, number> = {
+  reserved: 0,
+  paid: 1,
+  shipped: 2,
+};
+
+export const ORDER_STATE_LABEL: Record<ReservationStatus, string> = {
+  reserved: "Reserve",
+  paid: "Pay",
+  shipped: "Ship",
+};
+
+function mapAdminLine(row: Row): AdminLine {
+  return {
+    ...mapReservation(row),
+    userId: str(row, "user_id"),
+    email: str(row, "email"),
+  };
+}
+
+export function listOrderedItems(db: DatabaseSync): AdminLine[] {
+  return many(db, `${RESERVATION_SELECT} ORDER BY r.created_at, r.id`).map(mapAdminLine);
+}
+
+function compareOrdered(a: AdminLine, b: AdminLine, sort: OrderSort) {
+  if (sort === "user") {
+    const name = a.address.name.localeCompare(b.address.name, "en", { sensitivity: "base" });
+    if (name !== 0) return name;
+    return a.email.localeCompare(b.email, "en", { sensitivity: "base" });
+  }
+  if (sort === "state") return STATE_RANK[a.status] - STATE_RANK[b.status];
+  if (a.createdAt < b.createdAt) return -1;
+  if (a.createdAt > b.createdAt) return 1;
+  return 0;
+}
+
+export function sortOrderedItems(lines: AdminLine[], sort: OrderSort, dir: "asc" | "desc") {
+  const sign = dir === "desc" ? -1 : 1;
+  return [...lines].sort((a, b) => sign * compareOrdered(a, b, sort) || a.id.localeCompare(b.id));
+}
+
+export function groupOrderedItems(
+  lines: AdminLine[],
+  group: OrderGroupBy,
+  sort: OrderSort,
+  dir: "asc" | "desc",
+) {
+  const sorted = sortOrderedItems(lines, sort, dir);
+  if (group === "none") return [{ key: "all", label: "", lines: sorted }];
+  const buckets = new Map<string, AdminLine[]>();
+  for (const line of sorted) {
+    const key =
+      group === "user"
+        ? line.email.toLowerCase()
+        : group === "state"
+          ? line.status
+          : zurichDayKey(line.createdAt);
+    const existing = buckets.get(key);
+    if (existing) existing.push(line);
+    else buckets.set(key, [line]);
+  }
+  const groups = [...buckets.entries()].map(([key, items]) => ({
+    key,
+    label:
+      group === "user"
+        ? `${items[0].address.name} · ${items[0].email}`
+        : group === "state"
+          ? ORDER_STATE_LABEL[items[0].status]
+          : formatDay(items[0].createdAt),
+    lines: items,
+  }));
+  const sign = dir === "desc" ? -1 : 1;
+  groups.sort((a, b) => {
+    if (group === "state") {
+      return sign * (STATE_RANK[a.key as ReservationStatus] - STATE_RANK[b.key as ReservationStatus]);
+    }
+    return sign * a.key.localeCompare(b.key, "en", { sensitivity: "base" });
+  });
+  return groups;
+}
+
 export function listAdminLines(db: DatabaseSync, productId: string, status?: ReservationStatus): AdminLine[] {
   const rows = status
     ? many(
@@ -556,11 +659,7 @@ export function listAdminLines(db: DatabaseSync, productId: string, status?: Res
          ORDER BY b.sequence, r.created_at`,
         productId,
       );
-  return rows.map((row) => ({
-    ...mapReservation(row),
-    userId: str(row, "user_id"),
-    email: str(row, "email"),
-  }));
+  return rows.map(mapAdminLine);
 }
 
 export function markShipped(db: DatabaseSync, reservationId: string, now = new Date()) {

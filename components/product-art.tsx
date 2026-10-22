@@ -1,4 +1,5 @@
 const washes: Record<string, string> = {
+  "afm-saucer-mod": "#e4ddd2",
   "heavy-linen-apron": "#e7d7c8",
   "stoneware-bowl": "#e4ddd2",
   "oak-serving-board": "#e6d3b4",
@@ -14,6 +15,7 @@ export function ProductArt({ slug, name }: { slug: string; name: string }) {
       <title>{name}</title>
       <rect width="320" height="240" fill={wash} />
       <g fill="none" stroke="#1c1915" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+        {slug === "afm-saucer-mod" ? <Saucer /> : null}
         {slug === "heavy-linen-apron" ? <Apron /> : null}
         {slug === "stoneware-bowl" ? <Bowl /> : null}
         {slug === "oak-serving-board" ? <Board /> : null}
@@ -22,6 +24,20 @@ export function ProductArt({ slug, name }: { slug: string; name: string }) {
         {slug === "beeswax-candles" ? <Candles /> : null}
       </g>
     </svg>
+  );
+}
+
+function Saucer() {
+  return (
+    <>
+      <ellipse cx="160" cy="132" rx="112" ry="26" fill="#f7f4ec" />
+      <ellipse cx="160" cy="132" rx="112" ry="26" />
+      <path d="M48 132c18 28 206 28 224 0" />
+      <ellipse cx="160" cy="118" rx="42" ry="14" fill="#efe4cf" />
+      <path d="M160 86v22" />
+      <circle cx="160" cy="80" r="5" fill="#1c1915" stroke="none" />
+      <path d="M118 118h84" />
+    </>
   );
 }
 

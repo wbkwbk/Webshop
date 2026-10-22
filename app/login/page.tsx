@@ -26,7 +26,7 @@ async function Login({ searchParams }: { searchParams: SearchParams }) {
   return (
     <Frame>
       <PageHeader kicker="Account" title="Sign in">
-        <p>Use your own account, or step in as Lea to pay a finished batch. Only superuser can open the full reserved, paid, and shipped list.</p>
+        <p>Use your own account, or sign in as Lea. Only superuser sees every reserved, paid, and shipped piece, under Ordered items.</p>
       </PageHeader>
       <LoginForm next={next} />
     </Frame>

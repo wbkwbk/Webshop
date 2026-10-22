@@ -1,4 +1,4 @@
-import { BATCH_SIZE } from "./constants";
+import { PRODUCTION_AT } from "./constants";
 
 export type AllocationPreview = {
   closesBatch: boolean;
@@ -10,7 +10,7 @@ export type AllocationPreview = {
 export function describeAllocation(
   openFilled: number,
   quantity: number,
-  batchSize = BATCH_SIZE,
+  batchSize = PRODUCTION_AT,
 ): AllocationPreview {
   const filled = Math.max(0, Math.min(batchSize, openFilled));
   if (!Number.isInteger(quantity) || quantity < 1) {
@@ -30,17 +30,13 @@ export function describeAllocation(
   };
 }
 
-export function allocationCopy(openFilled: number, quantity: number) {
-  const plan = describeAllocation(openFilled, quantity);
-  if (!plan.closesBatch) {
-    const after = openFilled + quantity;
-    return `${after} of ${BATCH_SIZE} will be reserved. Payment stays closed until the hundred is full.`;
+export function allocationCopy(alreadyReserved: number, quantity: number) {
+  const after = Math.max(0, alreadyReserved) + (Number.isInteger(quantity) && quantity > 0 ? quantity : 0);
+  if (after < PRODUCTION_AT) {
+    return `${after} reserved after this. Production starts at ${PRODUCTION_AT}. You can reserve as many as you want.`;
   }
-  if (plan.intoFollowing === 0 && plan.batchesClosed === 1) {
-    return `This fills the batch of ${BATCH_SIZE}. Everyone in it is asked to pay, and then the workshop produces the pieces.`;
+  if (alreadyReserved < PRODUCTION_AT) {
+    return `This brings the total to ${after}. Production starts, and everyone who has reserved is asked to pay.`;
   }
-  if (plan.intoFollowing === 0) {
-    return `This fills ${plan.batchesClosed} batches of ${BATCH_SIZE}. Payment opens for each of them.`;
-  }
-  return `${plan.intoOpen} ${plan.intoOpen === 1 ? "piece fills" : "pieces fill"} the current batch and open payment. ${plan.intoFollowing} start the next batch and stay reserved.`;
+  return `${after} are already reserved. Production is underway, so this reservation can be paid now.`;
 }

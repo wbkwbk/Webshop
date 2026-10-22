@@ -8,8 +8,8 @@ export function SiteFooter() {
           <p className="font-serif text-lg text-foreground">Hundert</p>
           <p>Dienerstrasse 12, 8004 Zürich</p>
           <p className="mt-2 max-w-md leading-6">
-            A piece is made only after 100 of the same product are reserved. Payment on this shop is simulated, and
-            nothing is charged.
+            Production of the AFM Saucer Mod starts once 100 are reserved. You can reserve more than that. Payment
+            on this shop is simulated, and nothing is charged.
           </p>
         </div>
         <div className="flex flex-col gap-1 sm:items-end">

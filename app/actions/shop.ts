@@ -51,7 +51,7 @@ export async function reserveAction(_prev: ActionState, formData: FormData): Pro
   try {
     saveAddress(getDb(), user.id, address);
     const result = reserveCart(getDb(), user.id);
-    const flag = result.closedBatchIds.length > 0 ? "ready=1" : "reserved=1";
+    const flag = result.openedProduction ? "ready=1" : result.payable ? "pay=1" : "reserved=1";
     redirect(`/orders/${result.orderId}?${flag}`);
   } catch (error) {
     return failure(error, values);
@@ -80,7 +80,8 @@ export async function shipAction(formData: FormData) {
   const user = await readSessionUser();
   if (!user || user.role !== "admin") redirect("/");
   const productId = String(formData.get("productId") ?? "");
-  const back = `/admin/products/${productId}`;
+  const requested = safeNext(formData.get("returnTo"));
+  const back = requested.startsWith("/admin") ? requested : productId ? `/admin/products/${productId}` : "/admin";
   try {
     if (formData.get("all") === "1") {
       const count = markAllPaidShipped(getDb(), productId);

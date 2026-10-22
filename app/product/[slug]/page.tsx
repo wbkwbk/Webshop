@@ -51,20 +51,14 @@ async function ProductDetail({
           <ProductArt slug={product.slug} name={product.name} />
         </div>
         <div>
-          <PageHeader kicker="Made in batches of 100" title={product.name}>
+          <PageHeader kicker="The only piece in the shop" title={product.name}>
             <p>{product.summary}</p>
           </PageHeader>
           <p className="mb-4 font-serif text-3xl tabular-nums">{formatChf(product.priceCents)}</p>
-          {product.hasOpenBatch ? (
-            <BatchMeter filled={product.openFilled} />
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              The previous hundred is closed. Ordering now opens the next batch at zero.
-            </p>
-          )}
+          <BatchMeter filled={product.openFilled} />
           {product.paymentDueQty > 0 ? (
             <p className="mt-3 text-sm text-muted-foreground">
-              {pieces(product.paymentDueQty)} in a full batch are still waiting on payment.
+              {pieces(product.paymentDueQty)} are reserved and waiting on payment.
             </p>
           ) : null}
           <p className="mt-5 leading-7 text-muted-foreground">{product.description}</p>
@@ -76,7 +70,7 @@ async function ProductDetail({
           <div className="mt-6">
             <QuantityPicker
               productId={product.id}
-              openFilled={product.hasOpenBatch ? product.openFilled : 0}
+              openFilled={product.openFilled}
               signedIn={Boolean(user)}
               returnTo={`/product/${product.slug}`}
             />

@@ -14,10 +14,10 @@ export function CheckoutStepper({ step, canPay }: { step: 1 | 2; canPay: boolean
         <p className="font-medium">Pay</p>
         {canPay ? (
           <Link href="/checkout/pay" className="text-sm text-primary underline-offset-4 hover:underline">
-            The batch is full. Pay so we can produce it.
+            Production has started. Pay so we can make it.
           </Link>
         ) : (
-          <p className="text-sm text-muted-foreground">Opens when 100 pieces of the same product are reserved.</p>
+          <p className="text-sm text-muted-foreground">Opens once 100 pieces are reserved. You can keep reserving after that.</p>
         )}
       </li>
     </ol>

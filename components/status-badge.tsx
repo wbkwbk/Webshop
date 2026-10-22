@@ -8,7 +8,20 @@ const labels: Record<ReservationStatus, string> = {
   shipped: "Shipped",
 };
 
-export function StatusBadge({ status }: { status: ReservationStatus }) {
+const orderLabels: Record<ReservationStatus, string> = {
+  reserved: "Reserve",
+  paid: "Pay",
+  shipped: "Ship",
+};
+
+export function StatusBadge({
+  status,
+  vocabulary = "account",
+}: {
+  status: ReservationStatus;
+  vocabulary?: "account" | "order";
+}) {
+  const text = vocabulary === "order" ? orderLabels[status] : labels[status];
   return (
     <Badge
       variant="secondary"
@@ -18,7 +31,7 @@ export function StatusBadge({ status }: { status: ReservationStatus }) {
         status === "shipped" && "bg-[#234237] text-[#f3efe6]",
       )}
     >
-      {labels[status]}
+      {text}
     </Badge>
   );
 }

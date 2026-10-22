@@ -1,11 +1,11 @@
 # Hundert
 
-Hundert is a small Zürich workshop shop. A piece is made only after **100 of the same product** are reserved.
+Hundert sells one piece: the **AFM Saucer Mod**. Accounts, carts, reservations, postal addresses, payments, and shipping live in a SQLite database at `data/shop.db`.
 
 1. You create an account with a postal address we can ship to, and you can ask for a password reset.
-2. You add pieces to a cart and **reserve** them. That is checkout step 1. Nothing is charged.
-3. When a product reaches 100 reserved pieces, everyone in that batch is asked to **pay**. That is checkout step 2. The workshop then produces the paid pieces.
-4. Only the superuser can open the full list of pieces and see how many are **reserved**, **paid**, and **shipped**, then mark paid pieces as shipped. Every other account sees only their own orders.
+2. You add any quantity to a cart and **reserve** it. That is checkout step 1. Nothing is charged. The shop starts at **0 reserved**, and the quantity is not limited.
+3. Everyone can see how many are already reserved. Production starts once at least **100** are reserved. Everyone who reserved is then asked to **pay**. Later reservations can be paid straight away. That is checkout step 2.
+4. Only the superuser has the **Ordered items** menu. It lists every user’s reserved, paid, and shipped pieces, and it can be sorted and grouped by user, order state (Reserve, Pay, Ship), and order date. Every other account sees only their own orders.
 
 Payments are simulated. The test card is `4242 4242 4242 4242`, with any future expiry and any three-digit CVC. Nothing is charged.
 
@@ -20,7 +20,7 @@ npm run dev
 
 Open [http://127.0.0.1:4317](http://127.0.0.1:4317).
 
-The shop database is created at `data/shop.db` the first time the app runs. Delete that file to start again from the demo workshop.
+The shop database is created at `data/shop.db` the first time the app runs. An older catalog is replaced by the AFM Saucer Mod on the next start, and existing accounts are kept. Delete that file to start again from zero reserved.
 
 ```bash
 npm test
@@ -31,12 +31,8 @@ npm run lint
 
 | Who | Sign in | Password | What you see |
 | --- | --- | --- | --- |
-| Superuser | superuser | superuser | Every product, with reserved, paid, and shipped counts |
-| Lea Keller | lea@hundert.shop | lea-hundert | Only her own orders. A merino throw is waiting on her payment |
-
-The heavy linen apron is at 97 of 100. Reserving 3 closes that batch and asks every buyer to pay.
-
-Other seeded buyers use the password `batch-demo`.
+| Superuser | superuser | superuser | Ordered items: every reserved, paid, and shipped piece |
+| Lea Keller | lea@hundert.shop | lea-hundert | Only her own orders. Nothing is reserved yet |
 
 ## On your computer
 

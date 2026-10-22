@@ -16,9 +16,9 @@ export const metadata = { title: "Piece" };
 
 const filters: { label: string; value?: ReservationStatus }[] = [
   { label: "All" },
-  { label: "Reserved", value: "reserved" },
-  { label: "Paid", value: "paid" },
-  { label: "Shipped", value: "shipped" },
+  { label: "Reserve", value: "reserved" },
+  { label: "Pay", value: "paid" },
+  { label: "Ship", value: "shipped" },
 ];
 
 export default function AdminProductPage({
@@ -54,7 +54,7 @@ async function AdminProduct({
   return (
     <Frame>
       <Link href="/admin" className="text-sm text-muted-foreground underline-offset-4 hover:underline">
-        All pieces
+        Ordered items
       </Link>
       <PageHeader kicker="States" title={product.name}>
         <p>
@@ -104,11 +104,11 @@ async function AdminProduct({
                     {line.address.name} · {pieces(line.quantity)}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    {line.email} · batch {line.batchSequence} ({line.batchStatus}) · {formatWhen(line.createdAt)}
+                    {line.email} · {formatWhen(line.createdAt)}
                   </p>
                   <p className="mt-1 text-sm">{formatAddress(line.address)}</p>
                 </div>
-                <StatusBadge status={line.status} />
+                <StatusBadge status={line.status} vocabulary="order" />
               </div>
               {line.status === "paid" ? (
                 <form action={shipAction} className="mt-3">

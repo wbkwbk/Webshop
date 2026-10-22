@@ -22,9 +22,9 @@ export function paymentDueLetter(input: {
     body: [
       `Hello ${input.name},`,
       "",
-      `One hundred pieces of the ${input.productName} are now reserved (batch ${input.sequence}). Your share is ${pieces(input.quantity)}.`,
+      `At least 100 pieces of the ${input.productName} are reserved. Your share is ${pieces(input.quantity)}.`,
       "",
-      "Please pay so the workshop can start production. Nothing is made before payment.",
+      "Please pay so production can go ahead. Nothing is made before payment.",
       `We will ship to ${formatAddress(input.address)}.`,
       "",
       "Link: /checkout/pay",

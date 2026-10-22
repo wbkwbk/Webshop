@@ -55,6 +55,7 @@ export type ReservationLine = {
   batchId: string;
   batchSequence: number;
   batchStatus: BatchStatus;
+  paymentOpen: boolean;
   createdAt: string;
   paidAt: string | null;
   shippedAt: string | null;

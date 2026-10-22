@@ -31,8 +31,8 @@ async function Checkout() {
     <Frame>
       <PageHeader kicker="Checkout · step 1 of 2" title="Reserve, don’t pay yet">
         <p>
-          We keep the postal address on this reservation so the workshop can ship after the pieces are made. Payment
-          opens only when 100 pieces of that product are reserved.
+          We keep the postal address on this reservation so we can ship after the pieces are made. Payment opens once
+          100 AFM Saucer Mods are reserved. You can reserve more than that.
         </p>
       </PageHeader>
       <CheckoutStepper step={1} canPay={canPay} />
