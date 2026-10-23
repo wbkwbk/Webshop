@@ -1,0 +1,15 @@
+---
+description: Commit and push WebShop changes to GitHub
+alwaysApply: true
+---
+
+# Publish shop changes
+
+After changing this shop, commit the work and push it to `origin` (`https://github.com/wbkwbk/Webshop.git`) on `main`.
+
+Do not commit or push:
+
+- `.env`, `.env.local`, or any mailbox or SMTP password
+- `data/shop.db` and other local database files
+
+Leave those only on this computer. Do not force-push.
